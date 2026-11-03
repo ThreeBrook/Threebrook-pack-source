@@ -1,7 +1,7 @@
 # IIS 产品原生工程（阶段 1 起）。阶段 0 的 Python 评估工具在 bench/，不参与这里的构建。
 cmake_minimum_required(VERSION 3.21)
 
-project(iis VERSION 0.3.0 LANGUAGES C CXX)
+project(iis VERSION 0.3.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
