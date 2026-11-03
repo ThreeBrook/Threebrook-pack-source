@@ -33,6 +33,96 @@ std::vector<std::vector<uint8_t>> g_font_data;  // 字体字节，与 ImGui 字�
 
 ImVec4 v4(ImU32 c) { return ImGui::ColorConvertU32ToFloat4(c); }
 
+// ---- 中文换行 ----
+// ImGui 只在空格和少数标点（含“、”“。”）后换行，汉字之间不能断：整段汉字会被挤到下一行，上一行留出大片空白。
+// 这里先按中文排版断好行（插入 \n）再交给 ImGui：汉字之间都可以断，英文单词不拆；
+// 行首不放“，。；）”等，行尾不放“（”等。
+bool is_cjk(char32_t c) {
+    return (c >= 0x2E80 && c <= 0x9FFF) || (c >= 0xF900 && c <= 0xFAFF) || (c >= 0xFF00 && c <= 0xFFEF) ||
+           (c >= 0x2018 && c <= 0x201D) || c == 0x2026 || c == 0x2014;
+}
+bool in(const char32_t* set, char32_t c) {
+    for (; *set; ++set)
+        if (*set == c) return true;
+    return false;
+}
+constexpr char32_t kNoLineStart[] = U"，。、；：！？）》」』”’…%";
+constexpr char32_t kNoLineEnd[] = U"（《「『“‘";
+
+char32_t utf8_next(const char*& s, const char* e) {
+    const auto b = uint8_t(*s);
+    const int n = b < 0x80 ? 1 : b < 0xE0 ? 2 : b < 0xF0 ? 3 : 4;
+    if (e - s < n) return char32_t(uint8_t(*s++));
+    char32_t c = n == 1 ? b : b & (0x7F >> n);
+    for (int i = 1; i < n; ++i) c = (c << 6) | (uint8_t(s[i]) & 0x3F);
+    s += n;
+    return c;
+}
+
+std::string wrap_cjk(const char* text, float width) {
+    struct Tok {
+        const char *b, *e;
+        char32_t first, last;
+        bool blank, nl, cjk;
+    };
+    std::vector<Tok> toks;
+    for (const char *s = text, *end = text + std::strlen(text); s < end;) {
+        const char* b = s;
+        const char32_t c = utf8_next(s, end);
+        if (c == '\n') toks.push_back({b, s, c, c, false, true, false});
+        else if (c == ' ') toks.push_back({b, s, c, c, true, false, false});
+        else if (is_cjk(c)) toks.push_back({b, s, c, c, false, false, true});
+        else if (!toks.empty() && !toks.back().blank && !toks.back().nl && !toks.back().cjk) {
+            toks.back().e = s;
+            toks.back().last = c;
+        } else toks.push_back({b, s, c, c, false, false, false});
+    }
+    auto can_break = [&](const Tok& a, const Tok& b) {
+        if (a.blank || b.blank) return true;
+        if (in(kNoLineStart, b.first) || in(kNoLineEnd, a.last)) return false;
+        return a.cjk || b.cjk;
+    };
+    ImFont* font = ImGui::GetFont();
+    const float size = ImGui::GetFontSize();
+    auto tw = [&](const Tok& t) { return font->CalcTextSizeA(size, FLT_MAX, 0, t.b, t.e).x; };
+    std::vector<std::vector<size_t>> lines(1);
+    float w = 0;
+    for (size_t i = 0; i < toks.size(); ++i) {
+        const Tok& t = toks[i];
+        if (t.nl) {
+            lines.emplace_back();
+            w = 0;
+            continue;
+        }
+        if (t.blank && lines.back().empty()) continue;
+        const float x = tw(t);
+        auto& line = lines.back();
+        if (w + x > width && !line.empty() && !t.blank) {
+            size_t k = can_break(toks[line.back()], t) ? line.size() : 0;
+            for (size_t j = line.size() - 1; !k && j > 0; --j)
+                if (can_break(toks[line[j - 1]], toks[line[j]])) k = j;
+            if (k) {  // 从 k 处断开；断不开（如整行没有可断处）就留给 ImGui 硬切
+                std::vector<size_t> rest(line.begin() + ptrdiff_t(k), line.end());
+                line.resize(k);
+                while (!rest.empty() && toks[rest.front()].blank) rest.erase(rest.begin());
+                w = 0;
+                for (size_t j : rest) w += tw(toks[j]);
+                lines.push_back(std::move(rest));
+            }
+        }
+        lines.back().push_back(i);
+        w += x;
+    }
+    std::string out;
+    for (size_t l = 0; l < lines.size(); ++l) {
+        auto& line = lines[l];
+        while (!line.empty() && toks[line.back()].blank) line.pop_back();
+        if (l) out += '\n';
+        for (size_t j : line) out.append(toks[j].b, toks[j].e);
+    }
+    return out;
+}
+
 // 自定义样式的按钮：底色、悬停色、按下色、文字色、描边色、圆角、高度
 bool styled_button(const char* label, float width, float height, ImU32 bg, ImU32 hover, ImU32 active, ImU32 text, ImU32 border,
                    float rounding) {
@@ -224,7 +314,7 @@ void mono(const char* text, float size, ImU32 color) {
 void text_sub(const char* text, float size) {
     ImGui::PushFont(nullptr, size);
     ImGui::PushStyleColor(ImGuiCol_Text, g_pal->text_sub);
-    ImGui::TextWrapped("%s", text);
+    ImGui::TextWrapped("%s", wrap_cjk(text, ImGui::GetContentRegionAvail().x - 1).c_str());
     ImGui::PopStyleColor();
     ImGui::PopFont();
 }
@@ -285,10 +375,12 @@ void end_card() {
     }
 }
 
-void hint(const char* text, float width) {
+void hint(const char* raw, float width) {
     const Palette& p = *g_pal;
     const float dpi = ImGui::GetStyle().FontScaleDpi;
     const float w = width > 0 ? width : ImGui::GetContentRegionAvail().x, pad = 12 * dpi, bar = 3 * dpi;
+    const std::string wrapped = wrap_cjk(raw, w - 2 * pad - bar - 1);
+    const char* text = wrapped.c_str();
     ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + w - pad);
     const ImVec2 ts = ImGui::CalcTextSize(text, nullptr, false, w - 2 * pad - bar);
     ImGui::PopTextWrapPos();

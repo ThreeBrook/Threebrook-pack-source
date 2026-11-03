@@ -22,6 +22,7 @@ struct TaskState {  // 工作线程写、界面线程读，都要持有 mu
     std::vector<std::string> lines;     // 每项的结果
     std::vector<std::string> problems;  // 失败、跳过、未删除等需要注意的事（最多 500 条）
     uint64_t in_bytes = 0, out_bytes = 0;  // 压缩：压缩前后的总字节
+    uint64_t as_image = 0, as_other = 0;   // 打包：按图像压缩的文件数 / 其余（zstd 或原样）的文件数
     int failed = 0;                        // 失败的文件或项
     bool cancelled = false;
     std::string open_dir;  // 完成后“打开文件夹”打开的位置
@@ -33,5 +34,9 @@ void run_extract(const std::vector<std::string>& paths, const std::atomic<bool>&
 
 // 压缩任务里每项会生成什么（界面在开始前列出）：“[文件夹] 名 → 名.iisz”等
 std::string compress_preview(const std::string& path);
+
+// 压缩完成时的提示：打进包的文件里按图像压缩的不到一半（多是 JPG、PNG 这类本身已压缩的文件）时，
+// 说明为什么压缩比和一般压缩软件差不多；不需要提示时为空。调用方持有 st.mu
+std::string compress_hint(const TaskState& st);
 
 }  // namespace iis::view

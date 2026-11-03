@@ -343,6 +343,26 @@ TEST(viewer_tasks) {
     CHECK(get(d / L"图 A" / L"a.bmp") == a);
     CHECK(st.out_bytes > 0 && st.out_bytes < st.in_bytes);
     CHECK(st.open_dir == u8(d));
+    CHECK(st.as_image == 2 && st.as_other == 1);
+    CHECK(compress_hint(st).empty());  // 图像占多数：不提示
+
+    // 多数是 PNG 这类本身已压缩的文件：完成时提示为什么压缩比和一般压缩软件差不多
+    fs::create_directories(d / L"照片");
+    put(d / L"照片" / L"x.bmp", single);
+    put(d / L"照片" / L"p1.png", c);
+    put(d / L"照片" / L"p2.png", png_rgb(7, 4));
+    TaskState ph;
+    run_compress({u8(d / L"照片")}, false, cancel, ph);
+    CHECK(ph.as_image == 1 && ph.as_other == 2);
+    CHECK(compress_hint(ph).find("按图像压缩的只有 1 个（共 3 个文件）") == 0);
+    iis::i18n::set_lang(iis::i18n::Lang::En);
+    CHECK(compress_hint(ph).find("Compressed as images: 1 of 3 files.") == 0);
+    iis::i18n::set_lang(iis::i18n::Lang::Zh);
+    fs::remove(d / L"照片" / L"x.bmp", ec);
+    TaskState pn;
+    run_compress({u8(d / L"照片")}, false, cancel, pn);
+    CHECK(pn.as_image == 0 && pn.as_other == 2);
+    CHECK(compress_hint(pn).find("这些文件都不能按图像压缩") == 0);
 
     // 包内文件：取出并预览（PNG 走 Windows 自带解码器）
     const auto pk = open_package(u8(d / L"图 A.iisz"));

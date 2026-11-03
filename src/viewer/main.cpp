@@ -589,6 +589,13 @@ void draw_task(Task& t, float dpi, bool& done) {
     }
     ui::progress(frac);
     ImGui::Spacing();
+    if (t.compress && t.finished) {
+        const std::string h = compress_hint(s);
+        if (!h.empty()) {
+            ui::hint(h.c_str());
+            ImGui::Spacing();
+        }
+    }
     ImGui::PushStyleColor(ImGuiCol_ChildBg, p.card);
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 10 * dpi);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(14 * dpi, 10 * dpi));
@@ -1525,7 +1532,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
     std::wstring render_path, open_path, restore_path;
     std::vector<std::wstring> task_paths;
     int task_mode = 0;  // 1 压缩，2 解压
-    bool restore = false, size_given = false;
+    bool restore = false, size_given = false, auto_start = false;
     float render_scale = 1;
     ui::Mode theme = ui::Mode::System;
     int rw = 1280, rh = 800;
@@ -1541,6 +1548,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
             iis::i18n::set_lang(v.rfind(L"en", 0) == 0 ? iis::i18n::Lang::En : iis::i18n::Lang::Zh);
         }
         else if (a == L"--compress") task_mode = 1;
+        else if (a == L"--start") auto_start = true;  // 压缩不等点“开始压缩”（截完成窗口用）
         else if (a == L"--extract") task_mode = 2;
         else if (a == L"--restore") {
             restore = true;
@@ -1616,7 +1624,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
 
     App app;
     app.thumbs.start();
-    if (task && !task->compress) task->start();  // 解压不需要选项，直接开始
+    if (task && (!task->compress || auto_start)) task->start();  // 解压不需要选项，直接开始
     if (!open_path.empty()) app.open(u8(fs::path(open_path)));
     if (restore) {  // 右键“还原”：同时浏览该目录（或打开该文件），弹出填好的批量还原
         std::error_code ec;
@@ -1720,7 +1728,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
         // --render：等读取与缩略图完成（最多 15 秒），再渲染几帧后截图退出
         if (headless) {
-            const bool settled = task ? (task->compress || task->finished) : !app.is_loading && !app.tex_dirty && app.thumbs.pending == 0;
+            const bool settled = task ? ((task->compress && !task->started) || task->finished) :!app.is_loading && !app.tex_dirty && app.thumbs.pending == 0;
             if ((settled && ++frames > 10) || now > 15) {
                 save_backbuffer(render_path);
                 done = true;

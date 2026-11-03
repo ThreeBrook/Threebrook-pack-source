@@ -133,6 +133,24 @@ std::string compress_preview(const std::string& path) {
     return tr("[文件] ", "[File] ") + n + " → " + n + ".iis";
 }
 
+std::string compress_hint(const TaskState& st) {
+    const uint64_t total = st.as_image + st.as_other;
+    if (!total || st.as_image * 2 >= total) return {};
+    const char* tail = tr("三溪缩影对 BMP、TIFF、RAW 等未压缩的图像效果明显。",
+                          " Threebrook Pack makes the biggest difference on uncompressed images such as BMP, TIFF and RAW.");
+    if (!st.as_image)
+        return tr("这些文件都不能按图像压缩（如 JPG、PNG 本身已经压缩过），只做了普通压缩，效果和一般压缩软件差不多。",
+                  "None of these files could be compressed as images (JPG and PNG, for example, are already compressed), "
+                  "so they only got general-purpose compression, about the same as any archiver.") +
+               std::string(tail);
+    return trf("按图像压缩的只有 %llu 个（共 %llu 个文件）；其余的（如 JPG、PNG 这类本身已经压缩过的文件）只做了普通压缩，"
+               "效果和一般压缩软件差不多。",
+               "Compressed as images: %llu of %llu files. The rest (such as JPG and PNG, which are already compressed) only "
+               "got general-purpose compression, about the same as any archiver.",
+               (unsigned long long)st.as_image, (unsigned long long)total) +
+           tail;
+}
+
 void run_compress(const std::vector<std::string>& paths, bool delete_originals, const std::atomic<bool>& cancel,
                   TaskState& st) {
     {
@@ -180,6 +198,8 @@ void run_compress(const std::vector<std::string>& paths, bool delete_originals, 
             std::lock_guard<std::mutex> lk(st.mu);
             st.in_bytes += r.orig_bytes;
             st.out_bytes += r.package_bytes;
+            st.as_image += r.as_image;
+            st.as_other += r.as_zstd + r.as_stored;
             st.open_dir = u8s(fs::u8path(r.package).parent_path());
         } else if (fs::is_regular_file(p, ec)) {
             open_here(st, p.parent_path());
