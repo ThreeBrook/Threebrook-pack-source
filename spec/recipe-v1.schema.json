@@ -1,0 +1,612 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iis.local/spec/recipe-v1.schema.json",
+  "title": "IIS 容器配方 v1",
+  "description": "RECIPE 段的 JSON。说明见 spec/container-v1.md 第 13 节。未列出的字段名读取方必须忽略。",
+  "type": "object",
+  "required": [
+    "iis_recipe",
+    "format",
+    "writer",
+    "planes",
+    "extras",
+    "layout",
+    "predictor"
+  ],
+  "properties": {
+    "iis_recipe": {
+      "const": 1
+    },
+    "format": {
+      "enum": [
+        "bytes",
+        "bmp",
+        "tiff",
+        "raw"
+      ]
+    },
+    "writer": {
+      "type": "object",
+      "required": [
+        "name",
+        "version",
+        "libs"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "libs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "planes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/plane"
+      }
+    },
+    "extras": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/extra"
+      }
+    },
+    "layout": {
+      "type": "object"
+    },
+    "predictor": {
+      "type": "null"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "const": "bytes"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "layout": {
+            "$ref": "#/$defs/layout_bytes"
+          },
+          "planes": {
+            "maxItems": 0
+          },
+          "extras": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "const": "bmp"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "layout": {
+            "$ref": "#/$defs/layout_bmp"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "const": "raw"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "layout": {
+            "$ref": "#/$defs/layout_raw"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "const": "tiff"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "layout": {
+            "$ref": "#/$defs/layout_tiff"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "u32": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "u64": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "dim": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "plane": {
+      "type": "object",
+      "required": [
+        "id",
+        "image",
+        "role",
+        "bayer_phase",
+        "width",
+        "height",
+        "components",
+        "bits",
+        "shift",
+        "codec"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "image": {
+          "$ref": "#/$defs/u32"
+        },
+        "role": {
+          "enum": [
+            "gray",
+            "rgb",
+            "alpha",
+            "index",
+            "sample"
+          ]
+        },
+        "bayer_phase": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "enum": [
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "enum": [
+                    0,
+                    1
+                  ]
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "width": {
+          "$ref": "#/$defs/dim"
+        },
+        "height": {
+          "$ref": "#/$defs/dim"
+        },
+        "components": {
+          "enum": [
+            1,
+            3,
+            4
+          ]
+        },
+        "bits": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 16
+        },
+        "shift": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "codec": {
+          "enum": [
+            "jpegls",
+            "zstd",
+            "none"
+          ]
+        },
+        "sample": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 63,
+          "description": "role=sample 时的分量号（TIFF 非 1、3 分量的逐分量平面）"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "sample"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "sample"
+            ]
+          }
+        }
+      ]
+    },
+    "extra": {
+      "type": "object",
+      "required": [
+        "id",
+        "image",
+        "role"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "image": {
+          "$ref": "#/$defs/u32"
+        },
+        "role": {
+          "enum": [
+            "row_padding",
+            "packed_tail",
+            "block_tail",
+            "low_bits"
+          ]
+        },
+        "block": {
+          "$ref": "#/$defs/u64",
+          "description": "block_tail：TIFF 像素块序号"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "block_tail"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "block"
+            ]
+          }
+        }
+      ]
+    },
+    "layout_bytes": {
+      "type": "object",
+      "maxProperties": 0
+    },
+    "layout_bmp": {
+      "type": "object",
+      "required": [
+        "width",
+        "height",
+        "channels",
+        "top_down",
+        "stride",
+        "pixel_offset",
+        "padding_zero",
+        "alpha_const"
+      ],
+      "properties": {
+        "width": {
+          "$ref": "#/$defs/dim"
+        },
+        "height": {
+          "$ref": "#/$defs/dim"
+        },
+        "channels": {
+          "enum": [
+            1,
+            3,
+            4
+          ]
+        },
+        "top_down": {
+          "type": "boolean"
+        },
+        "stride": {
+          "$ref": "#/$defs/dim"
+        },
+        "pixel_offset": {
+          "$ref": "#/$defs/u64"
+        },
+        "padding_zero": {
+          "type": "boolean"
+        },
+        "alpha_const": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            }
+          ]
+        }
+      }
+    },
+    "layout_raw": {
+      "type": "object",
+      "required": [
+        "pixel_format",
+        "width",
+        "height",
+        "stride",
+        "body_offset",
+        "body_len",
+        "padding_zero"
+      ],
+      "properties": {
+        "pixel_format": {
+          "type": "string",
+          "pattern": "^(Mono(8|10|12|14|16|10p|12p|12Packed)|Bayer(RG|GB|GR|BG)(8|10|12|14|16|10p|12p|12Packed))$",
+          "description": "GenICam PFNC 名称"
+        },
+        "width": {
+          "$ref": "#/$defs/dim"
+        },
+        "height": {
+          "$ref": "#/$defs/dim"
+        },
+        "stride": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/dim"
+            }
+          ]
+        },
+        "body_offset": {
+          "$ref": "#/$defs/u64"
+        },
+        "body_len": {
+          "$ref": "#/$defs/u64"
+        },
+        "padding_zero": {
+          "type": "boolean"
+        }
+      }
+    },
+    "encoder": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "enum": [
+            "libtiff-lzw",
+            "imcd-lzw",
+            "lzw",
+            "zlib",
+            "libdeflate",
+            "packbits-rows",
+            "packbits"
+          ]
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "enum": [
+                  "zlib",
+                  "libdeflate"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "level"
+            ]
+          }
+        }
+      ]
+    },
+    "tiff_page": {
+      "type": "object",
+      "required": [
+        "index",
+        "width",
+        "height",
+        "samples",
+        "bits",
+        "planar",
+        "tiled",
+        "tile",
+        "rowsperstrip",
+        "predictor",
+        "compression",
+        "offsets",
+        "bytecounts",
+        "encoder",
+        "encoders"
+      ],
+      "properties": {
+        "index": {
+          "$ref": "#/$defs/u32"
+        },
+        "width": {
+          "$ref": "#/$defs/dim"
+        },
+        "height": {
+          "$ref": "#/$defs/dim"
+        },
+        "samples": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "bits": {
+          "enum": [
+            8,
+            16
+          ]
+        },
+        "planar": {
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "tiled": {
+          "type": "boolean"
+        },
+        "tile": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/dim"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "rowsperstrip": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/dim"
+            }
+          ]
+        },
+        "predictor": {
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "compression": {
+          "enum": [
+            null,
+            "lzw",
+            "zip",
+            "packbits"
+          ]
+        },
+        "offsets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/u64"
+          },
+          "minItems": 1
+        },
+        "bytecounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/u64"
+          },
+          "minItems": 1
+        },
+        "encoder": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/encoder"
+            }
+          ]
+        },
+        "encoders": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[IL]+$"
+            }
+          ],
+          "description": "encoder.name 为 lzw 时逐块记录：I = imcd-lzw，L = libtiff-lzw"
+        }
+      }
+    },
+    "layout_tiff": {
+      "type": "object",
+      "required": [
+        "byteorder",
+        "bigtiff",
+        "pages"
+      ],
+      "properties": {
+        "byteorder": {
+          "enum": [
+            "II",
+            "MM"
+          ]
+        },
+        "bigtiff": {
+          "type": "boolean"
+        },
+        "pages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tiff_page"
+          },
+          "minItems": 1
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+# 客户样本涉及保密，不入库
+samples/*
+!samples/.gitkeep
+
+# 评估输出
+bench/out/
+*.iis
+
+__pycache__/
+*.pyc
+.venv/
+
+# 本地依赖缓存与临时目录
+.cache/
+.tmp/
+.pytest_cache/
+
+# 项目的重复副本（解压包），不入库
+docs/industrial-image-store/
+docs/industrial-image-store.zip
+
+# 原生构建输出与打包结果
+build/
+dist/

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Threebrook Pack features</title>
+<link rel="stylesheet" href="poster.css">
+<style>
+  body { width: 1080px; height: 1440px; position: relative; background: var(--bg); }
+  .head { position: absolute; left: 80px; right: 80px; top: 72px; }
+  .head .row { display: flex; align-items: center; gap: 16px; }
+  .head .row img { width: 56px; height: 56px; }
+  .head .row span { font-size: 30px; }
+  .head h1 { margin-top: 30px; font-size: 50px; line-height: 1.1; letter-spacing: -.02em; }
+  .head h1 b { color: var(--persimmon); }
+  .head p { margin-top: 14px; font-size: 24px; color: var(--ink-2); }
+  .grid { position: absolute; left: 80px; right: 80px; top: 400px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 26px;
+          box-shadow: 0 1px 2px rgba(29,51,49,.06), 0 8px 24px rgba(29,51,49,.08); height: 455px; overflow: hidden; }
+  .card .n { font-family: var(--f-en); font-weight: 700; font-size: 20px; color: var(--persimmon); }
+  .card h2 { margin-top: 6px; font-size: 27px; }
+  .card p { margin-top: 8px; font-size: 17px; color: var(--ink-2); line-height: 1.45; height: 76px; }
+  .card .pic { margin-top: 14px; height: 270px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); position: relative; background: #F6FAF6; }
+  .card .pic img { position: absolute; }
+  .foot { position: absolute; left: 80px; right: 80px; bottom: 48px; display: flex; justify-content: space-between; align-items: center; font-size: 20px; color: var(--ink-3); }
+  .foot img { height: 36px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="row"><img src="../assets/icon-512.png" alt=""><span class="en">Threebrook Pack</span></div>
+    <h1 class="en">Works like ZIP.<br><b>Understands images better than ZIP.</b></h1>
+    <p>Four steps: compress, browse, preview, extract.</p>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="n">01</div><h2 class="en">Right-click to compress</h2>
+      <p>A folder becomes one .iisz package, a single image an .iis. Originals are kept by default.</p>
+      <div class="pic"><img src="../assets/shots-en/compress.png" style="width:118%; left:-3%; top:-26px"></div>
+    </div>
+    <div class="card">
+      <div class="n">02</div><h2 class="en">Look inside the package</h2>
+      <p>Double-click a .iisz and browse it like a folder. Click an image to view it — no unpacking first.</p>
+      <div class="pic"><img src="../assets/shots-en/package.png" style="width:1416px; left:-23px; top:-290px"></div>
+    </div>
+    <div class="card">
+      <div class="n">03</div><h2 class="en">Recognise at a glance</h2>
+      <p>In File Explorer a .iis shows the image itself; a .iisz shows a mosaic of its first four images.</p>
+      <div class="pic"><img src="../assets/shots-en/view-light.png" style="width:1416px; left:-23px; top:-409px"></div>
+    </div>
+    <div class="card">
+      <div class="n">04</div><h2 class="en">Extract, byte for byte</h2>
+      <p>Every file is checked with SHA-256 and matches the original exactly. Existing files are never overwritten.</p>
+      <div class="pic"><img src="../assets/shots-en/extract-done.png" style="width:118%; left:-3%; top:-26px"></div>
+    </div>
+  </div>
+  <div class="foot"><span>Windows 10 / 11 · Installs without admin rights</span><img src="../assets/threebrook-lockup-light.svg" alt="Threebrook"></div>
+</body>
+</html>

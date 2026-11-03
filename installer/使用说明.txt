@@ -1,0 +1,138 @@
+三溪缩影 —— 使用说明（English below）
+=====================================
+
+像 ZIP / WinRAR 一样用：在资源管理器里右键压缩、右键解压。
+图像（BMP、TIFF、RAW）按图像无损压缩，通常比 ZIP 小得多；解压出的文件与原文件逐字节相同。
+每次压缩、解压都核对 SHA-256，不一致时报错且不留下文件。已存在的文件一律不覆盖。
+
+Windows 11 的右键菜单默认折叠，下面的菜单项在“显示更多选项”里。
+
+
+一、压缩
+
+  右键一个文件夹 →“三溪缩影 压缩（打成 .iisz 包）”→ 点“开始压缩”
+      在文件夹旁边生成“文件夹名.iisz”，整个文件夹（含子文件夹）在一个包里。
+
+  右键一张 BMP / TIFF / RAW 图像 →“三溪缩影 压缩”→ 点“开始压缩”
+      在旁边生成“文件名.iis”。
+
+  可以同时选中几个文件夹或几张图像一起压缩。
+  默认保留原文件（和 ZIP 一样）。勾选“压缩并核对后删除原文件”则在包写好、逐个核对后删除原文件；
+  被占用、只读或压缩后被修改过的原文件不删除。
+  压不小的文件（如 JPG、PNG、已压缩的数据）原样放进包里，不会变大。
+  没有文件头的 .raw（相机直接存的像素数据）会自动识别宽、高和像素格式（8 / 10 / 12 / 16 位及打包格式），
+  按图像压缩。旁边有同名 .json 参数文件（width、height、pixel_format）时按参数文件。
+
+
+二、解压
+
+  右键 .iisz 或 .iis →“三溪缩影 解压到此处”
+      .iisz 解出原来的文件夹；同名文件夹已存在时解到“文件夹名 (2)”，不会与原有文件混在一起。
+      .iis 还原为旁边的原文件；原文件已存在时跳过。
+
+  右键一个文件夹 →“三溪缩影 解压其中的 .iis / .iisz”
+      把文件夹（含子文件夹）里所有的 .iis 还原、所有的 .iisz 解开。
+
+
+三、查看
+
+  资源管理器里把视图切到“中图标 / 大图标”：.iis 直接显示图片本身的缩略图；
+  .iisz 包显示前 4 张图拼成的缩略图，右下角带包图标。
+
+  双击 .iisz：用三溪缩影打开，像文件夹一样浏览，点图像即可查看；“全部解压到此处”解出整个包。
+  双击 .iis：直接看图；“另存为原文件”还原单个文件。
+  查看器也能打开普通的 BMP、TIFF、RAW、PNG、JPEG：缩放、16 位窗宽窗位、Bayer 预览。
+  浅色 / 深色跟随 Windows 的设置，也可在“视图 → 外观”里固定。
+  没有文件头的 RAW 自动识别宽高后直接显示；识别得不对时点“手动输入…”填参数。
+
+
+四、命令行（批量脚本用；安装后可在任何命令提示符中使用）
+
+  iis-cli pack D:\图像\批次1                    打包为 D:\图像\批次1.iisz（加 --delete 删除原文件）
+  iis-cli unpack D:\图像\批次1.iisz             解到包旁边（-o 输出目录 指定位置）
+  iis-cli list D:\图像\批次1.iisz               列出包内文件
+  iis-cli verify D:\图像\批次1.iisz --deep      完整校验（还原并核对 SHA-256，不写文件）
+  iis-cli compress 图像.bmp                     单个文件压缩为 图像.bmp.iis
+  iis-cli restore 目录 -r -o 输出目录            把 .iis 还原为原文件
+
+
+五、卸载之后
+
+  卸载只删除程序与右键菜单，不碰任何图像、.iis 与 .iisz 文件。
+  .iisz 是标准 ZIP 包（只存不压），任何解压软件都能打开；其中的“文件名.iis”可用开源解码器 iis-decode 还原
+  （源码公开，BSD-3-Clause），压不小的文件在包里就是原文件。重新安装三溪缩影后照常使用。
+
+------------------------------------------------------------------------------
+
+Threebrook Pack — User guide
+============================
+
+Use it like ZIP / WinRAR: right-click to compress and extract in File Explorer.
+Images (BMP, TIFF, RAW) are compressed losslessly as images, usually much smaller than ZIP;
+extracted files are byte-for-byte identical to the originals.
+Every compression and extraction is checked with SHA-256; on a mismatch you get an error and no file is left behind.
+Existing files are never overwritten.
+
+On Windows 11 the right-click menu is folded: the items below are under “Show more options”.
+The program, menus and file types follow your Windows display language (Chinese or English);
+in the viewer you can also switch under View → Language.
+
+
+1. Compress
+
+  Right-click a folder → “Threebrook Pack: Compress (to a .iisz package)” → click “Compress”
+      Creates “folder name.iisz” next to the folder; the whole folder (with subfolders) goes into one package.
+
+  Right-click a BMP / TIFF / RAW image → “Threebrook Pack: Compress” → click “Compress”
+      Creates “file name.iis” next to it.
+
+  You can select several folders or images and compress them together.
+  Originals are kept by default (like ZIP). Tick “Delete the originals after compressing and checking”
+  to delete them once the package is written and every file checked; files that are in use, read-only
+  or changed after compression are not deleted.
+  Files that would not get smaller (JPG, PNG, already compressed data) are stored as they are and never grow.
+  Headerless .raw files (raw pixel data straight from a camera) get their width, height and pixel format
+  detected automatically (8 / 10 / 12 / 16-bit and packed formats). A .json file with the same name
+  (width, height, pixel_format) next to it takes precedence.
+
+
+2. Extract
+
+  Right-click a .iisz or .iis → “Threebrook Pack: Extract here”
+      A .iisz restores the original folder; if a folder with that name exists, it goes to “name (2)”
+      so nothing gets mixed with existing files. A .iis restores the original file next to it;
+      if that file already exists it is skipped.
+
+  Right-click a folder → “Threebrook Pack: Extract the .iis / .iisz inside”
+      Restores every .iis and unpacks every .iisz in the folder and its subfolders.
+
+
+3. View
+
+  Switch File Explorer to “Medium / Large icons”: a .iis shows the picture itself;
+  a .iisz shows a mosaic of its first four images with a package badge in the corner.
+
+  Double-click a .iisz: it opens in Threebrook Pack and you browse it like a folder; click an image to view it;
+  “Extract all here” unpacks the whole package.
+  Double-click a .iis: view the image; “Save original as…” restores that single file.
+  The viewer also opens ordinary BMP, TIFF, RAW, PNG and JPEG: zoom, 16-bit window/level, Bayer preview.
+  Light / dark follows Windows; you can fix it under View → Appearance.
+
+
+4. Command line (for batch scripts; available in any Command Prompt after installing)
+
+  iis-cli pack D:\Images\Batch1                   Pack into D:\Images\Batch1.iisz (add --delete to delete the originals)
+  iis-cli unpack D:\Images\Batch1.iisz            Extract next to the package (-o folder to choose)
+  iis-cli list D:\Images\Batch1.iisz              List the files in a package
+  iis-cli verify D:\Images\Batch1.iisz --deep     Full check (restore and compare SHA-256, writes nothing)
+  iis-cli compress image.bmp                     Compress one file to image.bmp.iis
+  iis-cli restore folder -r -o output            Restore .iis files to the originals
+  (The command-line messages are in Chinese for now.)
+
+
+5. After uninstalling
+
+  Uninstalling only removes the program and the menus; it never touches images, .iis or .iisz files.
+  A .iisz is a standard ZIP (stored, not deflated) that any unzip tool can open; the “file.iis” entries inside
+  can be restored with the open-source decoder iis-decode (BSD-3-Clause), and files that did not get smaller
+  are the original files. Reinstall Threebrook Pack to keep using them as before.

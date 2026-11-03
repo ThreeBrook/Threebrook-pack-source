@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>图像压缩评估 · 界面效果图</title>
+<link rel="stylesheet" href="../web/threebrook-tokens.css">
+<script>/* ?theme=light|dark 固定主题（默认跟随系统） */
+const t = new URLSearchParams(location.search).get("theme"); if (t) document.documentElement.dataset.theme = t;</script>
+<style>
+/* 字体随软件附带（SIL OFL），见 fonts/OFL-*.txt */
+@font-face { font-family: "ZCOOL XiaoWei"; src: url("../web/fonts/ZCOOLXiaoWei-Regular.ttf"); }
+@font-face { font-family: "Bricolage Grotesque"; src: url("../web/fonts/BricolageGrotesque.ttf"); font-weight: 200 800; }
+@font-face { font-family: "JetBrains Mono"; src: url("../web/fonts/JetBrainsMono.ttf"); font-weight: 100 800; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--text); font: 13px/1.5 var(--f-body); }
+.win { width: 1280px; height: 880px; display: grid; grid-template-rows: 36px 1fr; overflow: hidden;
+       border: 1px solid var(--border); }
+
+/* 标题栏：自绘，高 36 */
+.titlebar { display: flex; align-items: center; gap: 8px; padding-left: 12px; background: var(--sidebar);
+            border-bottom: 1px solid var(--border); user-select: none; }
+.titlebar .logo { width: 18px; height: 18px; border-radius: 5px; background: linear-gradient(135deg, #3A93D6, #2F7FC1 60%, #24679E);
+                  display: grid; place-items: center; }
+.titlebar .name { font-family: var(--f-display); font-size: 14px; letter-spacing: .5px; }
+.titlebar .sp { flex: 1; }
+.titlebar .wb { width: 46px; height: 36px; display: grid; place-items: center; color: var(--text-sub); }
+.titlebar .wb.close:hover { background: #C42B1C; color: #fff; }
+
+.body { display: grid; grid-template-columns: 232px 1fr; min-height: 0; }
+
+/* 侧栏：宽 232 */
+.side { background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 18px 12px 14px; }
+.side .brand { font-family: var(--f-display); font-size: 20px; letter-spacing: .5px; padding: 2px 8px 14px; }
+.nav { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border-radius: 8px; color: var(--text);
+       position: relative; cursor: default; }
+.nav svg { width: 18px; height: 18px; color: var(--text-sub); flex: none; }
+.nav .key { margin-left: auto; font: 11px var(--f-mono); color: var(--text-muted); }
+.nav.on { background: var(--nav-active); }
+.nav.on::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--accent); }
+.nav.on svg { color: var(--accent); }
+.side .sec { font-size: 12px; color: var(--text-muted); padding: 18px 10px 6px; }
+.recent { display: flex; justify-content: space-between; padding: 6px 10px; font-size: 13px; border-radius: 6px; }
+.recent span:last-child { font: 11.5px var(--f-mono); color: var(--text-muted); }
+.side .foot { margin-top: auto; font-size: 12px; color: var(--text-muted); padding: 0 10px; line-height: 1.6; }
+
+/* 主区 */
+.main { overflow: hidden; padding: 22px 28px; display: flex; flex-direction: column; gap: 16px; }
+.ptitle { font-family: var(--f-display); font-size: 26px; letter-spacing: .5px; line-height: 1.25; margin: 0; }
+.psub { color: var(--text-sub); margin: 2px 0 0; }
+.grid { display: grid; grid-template-columns: 1fr 380px; gap: 16px; min-height: 0; }
+.col { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); padding: 20px; box-shadow: var(--shadow); }
+.ch { display: flex; align-items: flex-start; gap: 12px; }
+.ch .t { font-family: var(--f-display); font-size: 18px; letter-spacing: .5px; line-height: 1.25; }
+.ch .d { color: var(--text-sub); font-size: 12.5px; margin-top: 2px; }
+.ch .sp { flex: 1; }
+
+.btn { height: 36px; padding: 0 12px 0 10px; border: 1px solid var(--border-strong); border-radius: var(--r-button); background: var(--card);
+       color: var(--text); font: 13px var(--f-body); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex: none; }
+.btn-p { height: 40px; padding: 0 16px 0 12px; border: 0; border-radius: var(--r-primary); background: var(--accent); color: var(--on-accent);
+         font: 13px var(--f-body); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex: none; }
+.btn svg, .btn-p svg { width: 16px; height: 16px; }
+
+.path { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 0 12px; height: 44px; border: 1px solid var(--input-border);
+        border-radius: var(--r-input); background: var(--card); }
+.path svg { width: 18px; height: 18px; color: var(--text-sub); }
+.path .p { font: 12.5px var(--f-mono); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.path .m { font: 11.5px var(--f-mono); color: var(--text-muted); }
+
+.opts { display: flex; align-items: center; gap: 18px; margin-top: 14px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg span { padding: 6px 14px; font-size: 13px; background: var(--card); color: var(--text-sub); }
+.seg span.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.chk { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; }
+.box { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--text-muted); display: grid; place-items: center; }
+.box.on { background: var(--accent); border-color: var(--accent); }
+.box.on svg { width: 12px; height: 12px; color: var(--on-accent); }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border: 1px solid var(--chip-border); border-radius: var(--r-chip);
+        font-size: 12px; color: var(--text-sub); background: var(--card); }
+.chip svg { width: 13px; height: 13px; color: var(--success); }
+
+.hint { display: flex; align-items: center; gap: 8px; margin-top: 14px; background: var(--accent-soft); border-radius: 10px; padding: 9px 12px; }
+.hint svg { width: 16px; height: 16px; color: var(--accent); flex: none; }
+
+/* 进度 */
+.ovl { display: flex; align-items: baseline; gap: 10px; margin-top: 14px; }
+.ovl b { font-family: var(--f-display-en); font-weight: 700; font-size: 26px; letter-spacing: -.2px; }
+.ovl span { color: var(--text-sub); }
+.bar { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.bar.done i { background: var(--success); }
+.phases { margin-top: 14px; display: grid; grid-template-columns: 22px 92px 1fr 150px; align-items: center; row-gap: 9px; column-gap: 10px; }
+.phases .ic svg { width: 16px; height: 16px; display: block; }
+.phases .ic.ok { color: var(--success); }
+.phases .ic.run { color: var(--accent); }
+.phases .ic.wait { color: var(--offline); }
+.phases .n { font-size: 13px; }
+.phases .v { font: 11.5px var(--f-mono); color: var(--text-muted); text-align: right; }
+.phases .v.run { color: var(--accent); }
+
+/* 实时结果 */
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.tile { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.tile b { display: block; font-family: var(--f-display-en); font-weight: 700; font-size: 24px; letter-spacing: -.2px; line-height: 1.2; }
+.tile span { font-size: 12px; color: var(--text-sub); }
+.tile.good { background: var(--success-bg); border-color: transparent; }
+.tile.good b { color: var(--success-text); }
+.rows { margin-top: 14px; display: grid; grid-template-columns: 112px 1fr 44px; align-items: center; row-gap: 8px; column-gap: 10px; }
+.rows .l { font-size: 12.5px; color: var(--text); }
+.rows .r { font: 12px var(--f-mono); color: var(--text-sub); text-align: right; }
+.rows .bar { height: 8px; border-radius: 4px; }
+.rows .bar.base i { background: var(--offline); }
+.muted { color: var(--text-muted); font-size: 11.5px; }
+
+/* 失败列表 */
+.fail { display: grid; grid-template-columns: 20px 1fr auto; gap: 4px 10px; padding: 10px 0; border-top: 1px solid var(--border); }
+.fail:first-of-type { border-top: 0; }
+.fail svg { width: 16px; height: 16px; color: var(--danger); margin-top: 2px; }
+.fail .fn { font-size: 13px; }
+.fail .fr { grid-column: 2; color: var(--text-sub); font-size: 12.5px; }
+.fail .fp { font: 11.5px var(--f-mono); color: var(--text-muted); }
+.tag { display: inline-block; padding: 0 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; background: var(--highlight);
+       border: 1px solid var(--highlight-border); color: var(--sun-ink); }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="titlebar">
+    <div class="logo"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg></div>
+    <div class="name">图像压缩评估</div>
+    <div class="sp"></div>
+    <div class="wb"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M1 6h10" stroke="currentColor"/></svg></div>
+    <div class="wb"><svg width="12" height="12" viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" fill="none" stroke="currentColor"/></svg></div>
+    <div class="wb close"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor"/></svg></div>
+  </div>
+
+  <div class="body">
+    <aside class="side">
+      <div class="brand">图像压缩评估</div>
+      <div class="nav on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 4l12 8-12 8z"/></svg>快速测试<span class="key">Ctrl+N</span></div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>测试记录<span class="key">Ctrl+H</span></div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg>容量与 ROI<span class="key">Ctrl+R</span></div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>设置<span class="key">Ctrl+,</span></div>
+      <div class="sec">最近测试</div>
+      <div class="recent"><span>客户A · 工位3</span><span>2.61×</span></div>
+      <div class="recent"><span>合成测试集</span><span>2.55×</span></div>
+      <div class="recent"><span>客户B · 外观线</span><span>2.18×</span></div>
+      <div class="foot">仅在本机处理 · 不联网<br>样本目录只读</div>
+    </aside>
+
+    <main class="main">
+      <div>
+        <h1 class="ptitle">快速测试</h1>
+        <p class="psub">选一个装着样本图的文件夹，工具会识别格式、试几种无损压缩、逐字节还原核对，最后出一份报告。</p>
+      </div>
+
+      <div class="grid">
+        <div class="col">
+          <section class="card">
+            <div class="ch">
+              <div><div class="t">① 样本文件夹</div><div class="d">只读，不会改动里面的任何文件；结果放到单独的输出文件夹</div></div>
+              <div class="sp"></div>
+              <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>换一个文件夹</button>
+            </div>
+            <div class="path">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+              <span class="p">F:\Other-其他\industrial-image-store\bench\out\synth</span>
+              <span class="m">281 个文件 · 290.6 MB</span>
+            </div>
+            <div class="opts">
+              <span class="seg"><span class="on">快速</span><span>完整（含 JPEG XL 慢档）</span></span>
+              <span class="chk"><span class="box on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg></span>NTFS 对照</span>
+              <span class="chk"><span class="box on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg></span>天花板测试</span>
+              <span class="chk"><span class="box"></span>CPU 影响（约 5 分钟）</span>
+            </div>
+            <div class="opts" style="margin-top:10px">
+              <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-10"/></svg>找到 raw_config.yaml</span>
+              <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-10"/></svg>找到序列 200 帧 + 空载背景 8 张</span>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="ch">
+              <div><div class="t">② 正在测试</div><div class="d">Intel Xeon Platinum 8160T · 46 个进程并行 · 已用 2 分 18 秒</div></div>
+              <div class="sp"></div>
+              <button class="btn"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>停止</button>
+              <button class="btn-p" style="opacity:.5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>查看报告</button>
+            </div>
+            <div class="ovl"><b>58%</b><span>压缩对比：158 / 281 个文件，每个都在逐字节还原核对</span></div>
+            <div class="bar" style="margin-top:8px"><i style="width:58%"></i></div>
+            <div class="phases">
+              <span class="ic ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg></span><span class="n">识别格式</span><div class="bar done"><i style="width:100%"></i></div><span class="v">281 / 281 · 3 s</span>
+              <span class="ic ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg></span><span class="n">拆分重组自检</span><div class="bar done"><i style="width:100%"></i></div><span class="v">264 一致 · 0 不一致</span>
+              <span class="ic run"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" stroke-dasharray="4 3"/></svg></span><span class="n">压缩对比</span><div class="bar"><i style="width:56%"></i></div><span class="v run">158 / 281</span>
+              <span class="ic wait"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></span><span class="n">单核测速</span><div class="bar"><i style="width:0"></i></div><span class="v">等待</span>
+              <span class="ic wait"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></span><span class="n">天花板测试</span><div class="bar"><i style="width:0"></i></div><span class="v">等待</span>
+              <span class="ic wait"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></span><span class="n">生成报告</span><div class="bar"><i style="width:0"></i></div><span class="v">等待</span>
+            </div>
+          </section>
+        </div>
+
+        <div class="col">
+          <section class="card">
+            <div class="ch"><div><div class="t">实时结果</div><div class="d">已核对的 158 个文件 · 随测试推进更新</div></div></div>
+            <div class="tiles">
+              <div class="tile"><b>2.55×</b><span>JPEG-LS 总体压缩比</span></div>
+              <div class="tile"><b>61%</b><span>能省下的空间</span></div>
+              <div class="tile"><b>1.17×</b><span>对照：NTFS 压缩</span></div>
+              <div class="tile good"><b>0 例</b><span>还原不一致</span></div>
+            </div>
+            <div class="rows">
+              <span class="l">JPEG-LS</span><div class="bar"><i style="width:96%"></i></div><span class="r">2.55×</span>
+              <span class="l">JPEG XL e3</span><div class="bar"><i style="width:95%"></i></div><span class="r">2.52×</span>
+              <span class="l">HTJ2K</span><div class="bar"><i style="width:86%"></i></div><span class="r">2.29×</span>
+              <span class="l">PNG</span><div class="bar"><i style="width:79%"></i></div><span class="r">2.10×</span>
+              <span class="l">zstd -19</span><div class="bar base"><i style="width:73%"></i></div><span class="r">1.93×</span>
+              <span class="l">NTFS</span><div class="bar base"><i style="width:44%"></i></div><span class="r">1.17×</span>
+            </div>
+            <p class="muted" style="margin:10px 0 0">灰色是通用压缩对照。完成后可在报告里看分格式、速度和 ROI。</p>
+          </section>
+
+          <section class="card">
+            <div class="ch">
+              <div><div class="t">③ 没按图像压缩的文件</div><div class="d">原样或 zstd 保存，已计入总体压缩比</div></div>
+            </div>
+            <div style="margin-top:8px">
+              <div class="fail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>
+                <span class="fn">mono8_noconfig.raw<span class="tag">需确认参数</span></span><span class="fp">raw/</span>
+                <span class="fr">没有 RAW 配置，猜测 Mono8 1280×1024，确认后写入配置再测</span></div>
+              <div class="fail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>
+                <span class="fn">truncated.bmp</span><span class="fp">other/</span>
+                <span class="fr">文件被截断，按 zstd 保存</span></div>
+              <div class="fail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>
+                <span class="fn">photo.jpg 等 15 个</span><span class="fp">other/</span>
+                <span class="fr">不是要处理的格式（JPEG、PNG、文本）</span></div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,31 @@
+#pragma code_page(65001)
+// 由 cmake/version.cmake 生成：Windows 程序的版本信息（文件属性“详细信息”、安装包升级判断、代码签名都会用到）
+#include <winver.h>
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION @IIS_V1@,@IIS_V2@,@IIS_V3@,@IIS_V4@
+ PRODUCTVERSION @IIS_V1@,@IIS_V2@,@IIS_V3@,@IIS_V4@
+ FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+ FILEFLAGS 0x0L
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE @IIS_FTYPE@
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "080404b0"
+    BEGIN
+      VALUE "CompanyName", "@IIS_COMPANY@"
+      VALUE "FileDescription", "@IIS_DESC@"
+      VALUE "FileVersion", "@IIS_V1@.@IIS_V2@.@IIS_V3@.@IIS_V4@"
+      VALUE "InternalName", "@IIS_NAME@"
+      VALUE "OriginalFilename", "@IIS_FILE@"
+      VALUE "ProductName", "三溪缩影 Threebrook Pack"
+      VALUE "ProductVersion", "@IIS_V1@.@IIS_V2@.@IIS_V3@.@IIS_V4@"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x0804, 1200
+  END
+END

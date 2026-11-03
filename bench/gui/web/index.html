@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>图像压缩评估</title>
+<link rel="stylesheet" href="threebrook-tokens.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+  <div class="titlebar">
+    <div class="logo pywebview-drag-region"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg></div>
+    <div class="name pywebview-drag-region">图像压缩评估</div>
+    <div class="drag pywebview-drag-region"></div>
+    <button class="wb" id="wb-min" title="最小化"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M1 6h10" stroke="currentColor"/></svg></button>
+    <button class="wb" id="wb-max" title="最大化"><svg width="12" height="12" viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" fill="none" stroke="currentColor"/></svg></button>
+    <button class="wb close" id="wb-close" title="关闭"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor"/></svg></button>
+  </div>
+
+  <div class="body">
+    <aside class="side">
+      <div class="brand">图像压缩评估</div>
+      <div class="nav on" data-page="test"><span data-icon="play"></span>快速测试<span class="key">Ctrl+N</span></div>
+      <div class="nav" data-page="history"><span data-icon="list"></span>测试记录<span class="key">Ctrl+H</span></div>
+      <div class="nav" data-page="roi"><span data-icon="chart"></span>容量与 ROI<span class="key">Ctrl+R</span></div>
+      <div class="nav" data-page="settings"><span data-icon="tune"></span>设置<span class="key">Ctrl+,</span></div>
+      <div class="sec">最近测试</div>
+      <div id="recent"></div>
+      <div class="foot">仅在本机处理 · 不联网<br>样本文件夹只读</div>
+    </aside>
+
+    <main class="main">
+      <!-- 快速测试 -->
+      <section class="page on" id="page-test">
+        <div>
+          <h1 class="ptitle">快速测试</h1>
+          <p class="psub">选一个装着样本图的文件夹，工具会识别格式、试几种无损压缩、逐字节还原核对，最后出一份报告。</p>
+        </div>
+        <div class="grid">
+          <div class="col">
+            <section class="card">
+              <div class="ch">
+                <div><div class="t">① 样本文件夹</div><div class="d">只读，不会改动里面的任何文件；结果放到单独的输出文件夹</div></div>
+                <div class="sp"></div>
+                <button class="btn ic" id="pick"><span data-icon="folder"></span>选择文件夹</button>
+              </div>
+              <div class="path"><span data-icon="folder"></span><span class="p empty" id="path">还没有选择文件夹</span><span class="m" id="path-meta"></span></div>
+              <div class="opts">
+                <span class="seg" id="mode"><button data-v="quick">快速</button><button data-v="full">完整（含 JPEG XL 慢档）</button></span>
+                <span class="chk" data-opt="ntfs"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg></span>NTFS 对照</span>
+                <span class="chk" data-opt="ceiling"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg></span>天花板测试</span>
+                <span class="chk" data-opt="cpuload"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg></span>CPU 影响（约 5 分钟）</span>
+              </div>
+              <div class="opts" id="chips" style="margin-top:10px"></div>
+            </section>
+
+            <section class="card">
+              <div class="ch">
+                <div><div class="t" id="run-title">② 开始测试</div><div class="d" id="run-sub"></div></div>
+                <div class="sp"></div>
+                <div class="acts" id="run-acts"></div>
+              </div>
+              <div id="run-body"></div>
+            </section>
+          </div>
+
+          <div class="col">
+            <section class="card">
+              <div class="ch"><div><div class="t">实时结果</div><div class="d" id="live-sub">开始测试后在这里实时更新</div></div></div>
+              <div id="live"></div>
+            </section>
+            <section class="card" id="fail-card" style="display:none">
+              <div class="ch"><div><div class="t">③ 没按图像压缩的文件</div><div class="d">原样或 zstd 保存，已计入总体压缩比</div></div></div>
+              <div id="fails" style="margin-top:8px"></div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <!-- 测试记录 -->
+      <section class="page" id="page-history">
+        <div>
+          <h1 class="ptitle">测试记录</h1>
+          <p class="psub">每次测试的结果都在输出文件夹里，可以随时重新打开报告。</p>
+        </div>
+        <section class="card">
+          <div class="ch">
+            <div><div class="t">全部测试</div><div class="d mono" id="hist-root"></div></div>
+            <div class="sp"></div>
+            <button class="btn ic" id="hist-open-root"><span data-icon="folder"></span>打开结果文件夹</button>
+          </div>
+          <div id="hist" style="margin-top:12px"></div>
+        </section>
+      </section>
+
+      <!-- ROI -->
+      <section class="page" id="page-roi">
+        <div>
+          <h1 class="ptitle">容量与 <span class="en">ROI</span></h1>
+          <p class="psub">填入现场的出图量和硬盘情况，用某次测试的实测压缩比算出能多存几天、少配多少硬盘。</p>
+        </div>
+        <section class="card">
+          <div class="ch">
+            <div><div class="t">选择测试结果</div><div class="d">压缩比取该次测试推荐方案（默认 JPEG-LS）校验通过的总体压缩比</div></div>
+          </div>
+          <div class="form">
+            <div class="field" style="grid-column: span 2"><label>测试</label><select class="inp" id="roi-run"></select></div>
+            <div class="field"><label>每天出图量</label><div class="unit"><input class="inp" id="roi-daily" type="number" min="0" step="10"><span>GB</span></div></div>
+            <div class="field"><label>调试期每天出图量</label><div class="unit"><input class="inp" id="roi-debug" type="number" min="0" step="10"><span>GB</span></div></div>
+            <div class="field"><label>图像盘容量</label><div class="unit"><input class="inp" id="roi-disk" type="number" min="0" step="1"><span>TB</span></div></div>
+            <div class="field"><label>招标保留天数</label><div class="unit"><input class="inp" id="roi-days" type="number" min="1" step="1"><span>天</span></div></div>
+            <div class="field"><label>硬盘预留空间</label><div class="unit"><input class="inp" id="roi-reserve" type="number" min="0" max="90" step="1"><span>%</span></div></div>
+          </div>
+        </section>
+        <section class="card">
+          <div class="ch">
+            <div><div class="t">测算结果</div><div class="d" id="roi-sub"></div></div>
+            <div class="sp"></div>
+            <button class="btn-p ic" id="roi-apply"><span data-icon="report"></span>写入报告</button>
+          </div>
+          <div id="roi-out"></div>
+        </section>
+      </section>
+
+      <!-- 设置 -->
+      <section class="page" id="page-settings">
+        <div><h1 class="ptitle">设置</h1></div>
+        <div class="grid">
+          <div class="col">
+            <section class="card">
+              <div class="ch"><div><div class="t">外观</div><div class="d">跟随系统，也可以固定浅色或深色</div></div></div>
+              <div class="opts"><span class="seg" id="theme"><button data-v="system">跟随系统</button><button data-v="light">浅色</button><button data-v="dark">深色</button></span></div>
+            </section>
+            <section class="card">
+              <div class="ch">
+                <div><div class="t">结果保存位置</div><div class="d">每次测试在这里建一个子文件夹；不能放在样本文件夹里面</div></div>
+                <div class="sp"></div>
+                <button class="btn ic" id="out-pick"><span data-icon="folder"></span>更换</button>
+              </div>
+              <div class="path"><span data-icon="folder"></span><span class="p" id="out-root"></span></div>
+            </section>
+            <section class="card">
+              <div class="ch"><div><div class="t">测试默认值</div><div class="d">快速测试页每次打开时的默认选项</div></div></div>
+              <div class="form">
+                <div class="field"><label>并行进程数（每进程单线程）</label><input class="inp" id="set-jobs" type="number" min="1" max="256"></div>
+                <div class="field"><label>默认模式</label><span class="seg" id="set-mode"><button data-v="quick">快速</button><button data-v="full">完整</button></span></div>
+              </div>
+              <div class="hint"><span data-icon="info"></span><span>快速模式跳过 JPEG XL e7 / e9（最慢的两档，只多省 2%~4%）；完整模式在 300 MB 样本上约需 20 分钟。</span></div>
+            </section>
+          </div>
+          <div class="col">
+            <section class="card">
+              <div class="ch"><div><div class="t">关于</div><div class="d" id="about-sub"></div></div></div>
+              <div class="hint ok"><span data-icon="shield"></span><span>全部在本机处理，不上传、不联网；样本文件夹只读。</span></div>
+              <div class="kv" id="about"></div>
+              <p class="muted" style="margin:14px 0 0">字体：站酷小薇、Bricolage Grotesque、JetBrains Mono（SIL OFL 1.1，许可见 fonts 文件夹）。</p>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="mask" id="mask"><div class="dialog"><div class="t" id="dlg-t"></div><div class="d" id="dlg-d"></div>
+  <div class="acts"><button class="btn" id="dlg-no">取消</button><button class="btn-d" id="dlg-yes">删除</button></div></div></div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  三溪缩影安装包（WiX 5，生成 MSI）。由 scripts/build-installer.ps1 构建，说明见 installer/README.md。
+
+  预处理变量：Version（三段，如 0.3.0）、Manufacturer、Stage（已签名的待打包文件目录）
+
+  像 ZIP / WinRAR 一样手动压缩、解压：没有后台服务、不需要授权、不写数据目录。
+  两种装法（同一个安装包，“双用途”MSI）：
+    双击安装                  只装给当前用户，不需要管理员：程序在 %LOCALAPPDATA%\Programs\三溪缩影，注册表写在 HKCU
+    msiexec /i … ALLUSERS=1   装给本机所有用户（需要管理员）：程序在 Program Files\三溪缩影，注册表写在 HKLM
+    机器上已经为所有用户装过（含 0.2 及更早的版本）时，双击安装一开始就提示：先卸载旧版本，或用管理员命令行加 ALLUSERS=1 升级。
+    （MSI 文件右键没有“以管理员身份运行”；双击的安装也不会中途请求管理员权限，所以不能悄悄改成装给所有用户。）
+  安装内容
+    程序目录             iis-viewer.exe（查看器，以及右键打开的压缩 / 解压窗口）、iis_thumb.dll（缩略图）、iis-cli.exe（命令行，加入 PATH）、
+                         iis-decode.exe（开源解码器）、使用说明.txt、许可证\
+    资源管理器右键       文件夹：“三溪缩影 压缩”（打成 文件夹名.iisz）、“三溪缩影 解压其中的 .iis / .iisz”
+                         BMP / DIB / TIFF / RAW 图像：“三溪缩影 压缩”（生成 文件名.iis）
+                         .iisz / .iis：“三溪缩影 解压到此处”；双击用查看器打开；各有图标
+                         （Windows 11 在“显示更多选项”里）
+    缩略图               iis_thumb.dll：资源管理器里 .iis 显示图片本身的预览，.iisz 包显示前 4 张图的拼图（右下角带包图标）
+    开始菜单             三溪缩影、三溪缩影 压缩文件夹、三溪缩影 解压、使用说明
+  卸载只删除上面这些，不碰任何图像、.iis 与 .iisz 文件。
+
+  安装参数（msiexec /i 安装包.msi /qn 参数=值）
+    ALLUSERS=1       装给所有用户（需要管理员）；不写时只装给当前用户
+    INSTALLFOLDER=…  程序目录（首次安装时；之后升级沿用记下的位置）
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="三溪缩影 Threebrook Pack" Manufacturer="$(var.Manufacturer)" Version="$(var.Version)"
+           UpgradeCode="27934C50-BC0F-407D-8ADC-74434C576DCC" Language="2052" Codepage="936"
+           Scope="perUserOrMachine" InstallerVersion="500" Compressed="yes">
+    <SummaryInformation Description="三溪缩影 $(var.Version)" Manufacturer="$(var.Manufacturer)" Codepage="936" />
+
+    <!-- 先完整卸载旧版本（含 0.1 版的后台服务）再装新版本 -->
+    <MajorUpgrade Schedule="afterInstallInitialize" AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="已安装更新版本的 [ProductName]，不能降级。如需降级请先卸载（压缩文件不受影响）。 A newer version of [ProductName] is already installed. To go back to an older version, uninstall first (your compressed files are not affected)." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Property Id="WINMAJOR">
+      <RegistrySearch Id="WinMajor" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+                      Name="CurrentMajorVersionNumber" Type="raw" Bitness="always64" />
+    </Property>
+    <Launch Condition="VersionNT64" Message="三溪缩影需要 64 位的 Windows 10 / 11。 Threebrook Pack needs 64-bit Windows 10 / 11." />
+    <Launch Condition="Installed OR WINMAJOR = &quot;#10&quot;" Message="三溪缩影需要 Windows 10 / 11（64 位）。 Threebrook Pack needs Windows 10 / 11 (64-bit)." />
+
+    <!-- 上次装在哪里（所有用户：HKLM；当前用户：HKCU）。升级、重装沿用上次的程序目录 -->
+    <Property Id="MACHINE_INSTALLFOLDER">
+      <RegistrySearch Id="RegMachineFolder" Root="HKLM" Key="SOFTWARE\IIS\Install" Name="InstallFolder" Type="raw" Bitness="always64" />
+    </Property>
+    <Property Id="USER_INSTALLFOLDER">
+      <RegistrySearch Id="RegUserFolder" Root="HKCU" Key="SOFTWARE\IIS\Install" Name="InstallFolder" Type="raw" Bitness="always64" />
+    </Property>
+    <!-- 已经为所有用户装过（含 0.2 及更早的版本）而这次是双击（只装给当前用户）：不能悄悄改成装给所有用户——
+         双击的安装不会请求管理员权限，会在中途报“没有足够的特权”。所以一开始就说清楚怎么办 -->
+    <Launch Condition="Installed OR ALLUSERS = 1 OR NOT MACHINE_INSTALLFOLDER"
+            Message="这台电脑上已经为所有用户装了旧版本（“IIS 工业图像压缩存储”或“三溪缩影”）。请先在“设置 → 应用”里卸载它（卸载时会请求管理员确认，图像与压缩文件不受影响），再双击本安装包，这次不需要管理员。如果想继续为所有用户安装，请以管理员身份打开命令提示符，运行：msiexec /i 本安装包的完整路径 ALLUSERS=1&#10;&#10;An older version is installed for all users on this computer (“IIS” or “Threebrook Pack”). Please uninstall it first in Settings → Apps (this asks for administrator approval; your images and compressed files are not affected), then double-click this installer again — no administrator needed this time. To keep installing for all users instead, open a Command Prompt as administrator and run: msiexec /i full-path-of-this-installer ALLUSERS=1" />
+    <SetProperty Id="REMEMBERED_FOLDER" Action="SetRememberedMachine" Value="[MACHINE_INSTALLFOLDER]" After="AppSearch"
+                 Sequence="both" Condition="ALLUSERS = 1 AND MACHINE_INSTALLFOLDER" />
+    <SetProperty Id="REMEMBERED_FOLDER" Action="SetRememberedUser" Value="[USER_INSTALLFOLDER]" After="SetRememberedMachine"
+                 Sequence="both" Condition="NOT ALLUSERS = 1 AND USER_INSTALLFOLDER" />
+    <SetDirectory Id="INSTALLFOLDER" Value="[REMEMBERED_FOLDER]" Condition="REMEMBERED_FOLDER" Sequence="both" />
+
+    <Icon Id="AppIcon" SourceFile="$(var.Stage)\iis-app.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPCOMMENTS" Value="卸载不会删除任何图像、.iis 与 .iisz 文件。 Uninstalling never deletes images, .iis or .iisz files." />
+
+    <!-- 只装给当前用户时，Windows Installer 把 ProgramFiles64Folder 换成 %LOCALAPPDATA%\Programs -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="三溪缩影">
+        <Directory Id="LICENSEFOLDER" Name="许可证" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="IisMenuFolder" Name="三溪缩影" />
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="三溪缩影" Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="Program" />
+      <ComponentGroupRef Id="Licenses" />
+    </Feature>
+
+    <!-- 注册表一律写 HKMU：装给所有用户时是 HKLM，只装给当前用户时是 HKCU；ProgId / Class 写的 HKCR 同样随安装方式 -->
+    <ComponentGroup Id="Program" Directory="INSTALLFOLDER">
+      <Component Id="CliExe">
+        <File Id="CliExe" Source="$(var.Stage)\iis-cli.exe" KeyPath="yes" />
+      </Component>
+      <!-- 命令行目录加入 PATH：所有用户为系统 PATH，当前用户为用户 PATH -->
+      <Component Id="PathMachine" Condition="ALLUSERS = 1" Bitness="always64">
+        <Environment Id="PathCliMachine" Name="PATH" Value="[INSTALLFOLDER]" Part="last" Action="set" System="yes" Permanent="no" />
+        <RegistryValue Root="HKMU" Key="SOFTWARE\IIS\Install" Name="Path" Value="1" Type="integer" KeyPath="yes" />
+      </Component>
+      <Component Id="PathUser" Condition="NOT ALLUSERS = 1" Bitness="always64">
+        <Environment Id="PathCliUser" Name="PATH" Value="[INSTALLFOLDER]" Part="last" Action="set" System="no" Permanent="no" />
+        <RegistryValue Root="HKCU" Key="SOFTWARE\IIS\Install" Name="Path" Value="1" Type="integer" KeyPath="yes" />
+      </Component>
+      <Component Id="DecodeExe">
+        <File Id="DecodeExe" Source="$(var.Stage)\iis-decode.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="ViewerExe">
+        <File Id="ViewerExe" Source="$(var.Stage)\iis-viewer.exe" KeyPath="yes" />
+        <!-- 图标在 iis-viewer.exe 里：资源号 2 为 .iis，3 为 .iisz（负数表示资源号） -->
+        <ProgId Id="IIS.CompressedImage" Description="三溪缩影 压缩图像" Icon="ViewerExe" IconIndex="-2" Advertise="no">
+          <Extension Id="iis" ContentType="application/x-iis">
+            <Verb Id="open" Command="用三溪缩影打开" TargetFile="ViewerExe" Argument="&quot;%1&quot;" />
+            <Verb Id="IisExtract" Command="三溪缩影 解压到此处" TargetFile="ViewerExe" Argument="--extract &quot;%1&quot;" />
+          </Extension>
+        </ProgId>
+        <ProgId Id="IIS.Package" Description="三溪缩影 压缩包" Icon="ViewerExe" IconIndex="-3" Advertise="no">
+          <Extension Id="iisz" ContentType="application/x-iisz">
+            <Verb Id="open" Command="用三溪缩影打开" TargetFile="ViewerExe" Argument="&quot;%1&quot;" />
+            <Verb Id="IisExtract" Command="三溪缩影 解压到此处" TargetFile="ViewerExe" Argument="--extract &quot;%1&quot;" />
+          </Extension>
+        </ProgId>
+        <!-- 显示的文字取 iis-viewer.exe 的字符串资源（icons.rc.in，中文 / 英文），Windows 按显示语言选；MUIVerb 优先于上面的 Command -->
+        <?foreach pid in IIS.CompressedImage;IIS.Package ?>
+        <RegistryValue Root="HKMU" Key="SOFTWARE\Classes\$(pid)\shell\open" Name="MUIVerb" Type="string" Value="@[#ViewerExe],-205" />
+        <RegistryValue Root="HKMU" Key="SOFTWARE\Classes\$(pid)\shell\IisExtract" Name="MUIVerb" Type="string" Value="@[#ViewerExe],-204" />
+        <?endforeach?>
+        <RegistryValue Root="HKMU" Key="SOFTWARE\Classes\IIS.CompressedImage" Name="FriendlyTypeName" Type="string" Value="@[#ViewerExe],-206" />
+        <RegistryValue Root="HKMU" Key="SOFTWARE\Classes\IIS.Package" Name="FriendlyTypeName" Type="string" Value="@[#ViewerExe],-207" />
+        <RegistryValue Root="HKMU" Key="SOFTWARE\Classes\IIS.CompressedImage\shell\IisExtract" Name="Icon" Type="string" Value="[#ViewerExe]" />
+        <RegistryValue Root="HKMU" Key="SOFTWARE\Classes\IIS.Package\shell\IisExtract" Name="Icon" Type="string" Value="[#ViewerExe]" />
+        <!-- 包的缩略图右下角叠加包图标，与单张图区分 -->
+        <RegistryValue Root="HKMU" Key="SOFTWARE\Classes\IIS.Package" Name="TypeOverlay" Type="string" Value="[#ViewerExe],-3" />
+        <!-- 右键文件夹：压缩为一个包；解压其中的 .iis / .iisz -->
+        <RegistryKey Root="HKMU" Key="SOFTWARE\Classes\Directory\shell\IisCompress">
+          <RegistryValue Type="string" Value="三溪缩影 压缩（打成 .iisz 包）" />
+          <RegistryValue Name="MUIVerb" Type="string" Value="@[#ViewerExe],-201" />
+          <RegistryValue Name="Icon" Type="string" Value="[#ViewerExe]" />
+          <RegistryValue Key="command" Type="string" Value="&quot;[#ViewerExe]&quot; --compress &quot;%1&quot;" />
+        </RegistryKey>
+        <RegistryKey Root="HKMU" Key="SOFTWARE\Classes\Directory\shell\IisExtract">
+          <RegistryValue Type="string" Value="三溪缩影 解压其中的 .iis / .iisz" />
+          <RegistryValue Name="MUIVerb" Type="string" Value="@[#ViewerExe],-202" />
+          <RegistryValue Name="Icon" Type="string" Value="[#ViewerExe]" />
+          <RegistryValue Key="command" Type="string" Value="&quot;[#ViewerExe]&quot; --extract &quot;%1&quot;" />
+        </RegistryKey>
+        <!-- 右键图像文件：压缩为 文件名.iis（不改变这些格式原来的默认打开程序） -->
+        <?foreach ext in bmp;dib;tif;tiff;raw ?>
+        <RegistryKey Root="HKMU" Key="SOFTWARE\Classes\SystemFileAssociations\.$(ext)\shell\IisCompress">
+          <RegistryValue Type="string" Value="三溪缩影 压缩" />
+          <RegistryValue Name="MUIVerb" Type="string" Value="@[#ViewerExe],-203" />
+          <RegistryValue Name="Icon" Type="string" Value="[#ViewerExe]" />
+          <RegistryValue Key="command" Type="string" Value="&quot;[#ViewerExe]&quot; --compress &quot;%1&quot;" />
+        </RegistryKey>
+        <?endforeach?>
+      </Component>
+      <!-- 资源管理器缩略图：.iis 显示图片本身的预览，.iisz 显示前 4 张图的拼图（Windows 默认在隔离进程里运行缩略图处理程序） -->
+      <Component Id="ThumbDll">
+        <File Id="ThumbDll" Source="$(var.Stage)\iis_thumb.dll" KeyPath="yes">
+          <Class Id="6C71C38C-08F5-40DC-AD84-B8644B008F7A" Context="InprocServer32" Description="三溪缩影 缩略图"
+                 ThreadingModel="apartment" Advertise="no" />
+        </File>
+        <RegistryValue Root="HKMU" Key="SOFTWARE\Classes\.iis\ShellEx\{e357fccd-a995-4576-b01f-234630154e96}" Type="string"
+                       Value="{6C71C38C-08F5-40DC-AD84-B8644B008F7A}" />
+        <RegistryValue Root="HKMU" Key="SOFTWARE\Classes\.iisz\ShellEx\{e357fccd-a995-4576-b01f-234630154e96}" Type="string"
+                       Value="{6C71C38C-08F5-40DC-AD84-B8644B008F7A}" />
+        <RegistryValue Root="HKMU" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved"
+                       Name="{6C71C38C-08F5-40DC-AD84-B8644B008F7A}" Type="string" Value="三溪缩影 缩略图" />
+      </Component>
+      <Component Id="Readme">
+        <File Id="Readme" Source="$(var.Stage)\使用说明.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="RegInstall" Bitness="always64">
+        <RegistryValue Root="HKMU" Key="SOFTWARE\IIS\Install" Name="InstallFolder" Value="[INSTALLFOLDER]" Type="string" KeyPath="yes" />
+        <RegistryValue Root="HKMU" Key="SOFTWARE\IIS\Install" Name="Version" Value="$(var.Version)" Type="string" />
+      </Component>
+      <Component Id="Shortcuts" Directory="IisMenuFolder" Guid="1931D9D3-C52C-45B9-8ADB-8ED48DF901B0">
+        <Shortcut Id="ScViewer" Name="三溪缩影" Description="查看 .iis、.iisz 包与 BMP / TIFF / RAW 图像"
+                  Target="[INSTALLFOLDER]iis-viewer.exe" WorkingDirectory="INSTALLFOLDER"
+                  DisplayResourceDll="[#ViewerExe]" DisplayResourceId="210" />
+        <Shortcut Id="ScCompress" Name="三溪缩影 压缩文件夹" Description="选择文件夹，打成一个 .iisz 包"
+                  Target="[INSTALLFOLDER]iis-viewer.exe" Arguments="--compress" WorkingDirectory="INSTALLFOLDER"
+                  DisplayResourceDll="[#ViewerExe]" DisplayResourceId="211" />
+        <Shortcut Id="ScExtract" Name="三溪缩影 解压" Description="选择 .iisz 包或 .iis 文件，解压到所在文件夹"
+                  Target="[INSTALLFOLDER]iis-viewer.exe" Arguments="--extract" WorkingDirectory="INSTALLFOLDER"
+                  DisplayResourceDll="[#ViewerExe]" DisplayResourceId="212" />
+        <Shortcut Id="ScReadme" Name="使用说明" Target="[INSTALLFOLDER]使用说明.txt" DisplayResourceDll="[#ViewerExe]" DisplayResourceId="213" />
+        <RemoveFolder Id="RmMenu" On="uninstall" />
+        <!-- 开始菜单属于“用户配置文件”目录，Windows Installer 要求这类组件以 HKCU 下的值作为键路径（ICE38 / ICE43） -->
+        <RegistryValue Root="HKCU" Key="Software\IIS\Install" Name="Shortcuts" Value="1" Type="integer" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="Licenses" Directory="LICENSEFOLDER">
+      <Files Include="$(var.Stage)\许可证\*.txt" />
+    </ComponentGroup>
+  </Package>
+</Wix>

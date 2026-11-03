@@ -1,0 +1,11 @@
+# 阶段 0 评估工具（bench/）依赖。版本固定：复现式还原与速度数据依赖具体库版本。
+# 安装：python -m venv .venv && .venv\Scripts\python -m pip install -r requirements.txt
+numpy==2.5.4
+tifffile==2026.10.15
+imagecodecs==2026.10.10      # CharLS 2.4.4 / OpenJPH 0.32 / OpenJPEG 2.5.4 / libjxl 0.12 / zstd 1.5.7 / libpng 1.6.59
+opencv-python-headless==5.0.0.93   # 合成数据（真实 OpenCV 写图指纹）与 LZW/ZIP 复现候选
+PyYAML==6.0.3
+psutil==7.2.2                # T6 CPU 影响测试
+pywebview==6.2.1             # 图形界面（使用 Windows 自带的 Edge WebView2）
+pytest==9.2.0
+jsonschema==4.26.0          # 仅测试：配方 JSON Schema 校验（MIT）

@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IIS 本机管理</title>
+<style>
+:root {
+  --bg: #f4f6f8; --panel: #ffffff; --ink: #1d2733; --muted: #66727f; --line: #dde3e8;
+  --accent: #1f6feb; --accent-ink: #ffffff; --ok: #1a7f37; --warn: #b26a00; --bad: #c62828;
+  --ok-bg: #e7f5ec; --warn-bg: #fff4e0; --bad-bg: #fdecec; --code: #f0f3f6;
+  --radius: 8px; --font: "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  --mono: "Cascadia Mono", Consolas, "Courier New", monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.6 var(--font); }
+header { display: flex; align-items: center; gap: 16px; padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+header .grow { flex: 1; }
+.pill { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); } .pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); } .pill.muted { background: var(--code); color: var(--muted); }
+.layout { display: grid; grid-template-columns: 180px 1fr; min-height: calc(100vh - 49px); }
+nav { background: var(--panel); border-right: 1px solid var(--line); padding: 12px 0; }
+nav a { display: block; padding: 8px 20px; color: var(--ink); text-decoration: none; border-left: 3px solid transparent; }
+nav a:hover { background: var(--code); }
+nav a.on { border-left-color: var(--accent); background: #eef4ff; color: var(--accent); font-weight: 600; }
+nav .sep { height: 1px; background: var(--line); margin: 8px 16px; }
+main { padding: 20px 24px 90px; max-width: 1180px; }
+h2 { font-size: 18px; margin: 0 0 4px; } .sub { color: var(--muted); margin: 0 0 16px; }
+h3 { font-size: 15px; margin: 18px 0 8px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.stat .k { color: var(--muted); font-size: 12px; } .stat .v { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 13px; color: var(--muted); font-weight: 400; }
+.bar { height: 10px; background: var(--code); border-radius: 5px; overflow: hidden; margin: 6px 0; }
+.bar > i { display: block; height: 100%; background: var(--accent); }
+.bar.warn > i { background: var(--warn); } .bar.bad > i { background: var(--bad); }
+.alert { padding: 8px 12px; border-radius: 6px; margin-bottom: 8px; }
+.alert.warn { background: var(--warn-bg); color: var(--warn); } .alert.bad { background: var(--bad-bg); color: var(--bad); }
+.alert.ok { background: var(--ok-bg); color: var(--ok); }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; }
+td.num, th.num { text-align: right; }
+.form { display: grid; grid-template-columns: 220px 1fr; gap: 10px 16px; align-items: start; }
+.form label { padding-top: 6px; color: var(--ink); }
+.form .help { grid-column: 2; color: var(--muted); font-size: 12px; margin-top: -6px; }
+input[type=text], input[type=password], input[type=number], input[type=date], select, textarea {
+  width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; background: #fff; color: var(--ink); }
+input:focus, select:focus, textarea:focus { outline: 2px solid #b6d0ff; border-color: var(--accent); }
+textarea { font-family: var(--mono); font-size: 13px; min-height: 70px; resize: vertical; }
+input.bad, textarea.bad { border-color: var(--bad); }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
+button:hover { background: var(--code); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.primary:hover { filter: brightness(1.08); }
+button.danger { color: var(--bad); border-color: #f0b4b4; }
+button:disabled { opacity: .5; cursor: default; }
+.item { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; background: #fbfcfd; }
+.item .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 600; }
+.savebar { position: fixed; left: 180px; right: 0; bottom: 0; background: #fffbe8; border-top: 1px solid #f0d78c; padding: 10px 24px; display: none; align-items: center; gap: 12px; z-index: 6; }
+.savebar.show { display: flex; }
+.mono { font-family: var(--mono); font-size: 12.5px; }
+.logs { background: #0f1720; color: #d7dee6; border-radius: var(--radius); padding: 10px 12px; max-height: 64vh; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+.logs .w { color: #ffcf70; } .logs .e { color: #ff8a80; }
+.modal { position: fixed; inset: 0; background: rgba(15, 23, 32, .45); display: none; align-items: center; justify-content: center; z-index: 10; }
+.modal.show { display: flex; }
+.modal .box { background: #fff; border-radius: 10px; width: min(920px, 94vw); max-height: 88vh; overflow: auto; padding: 18px 20px; }
+.diff { font-family: var(--mono); font-size: 12.5px; background: var(--code); border-radius: 6px; padding: 8px 0; max-height: 46vh; overflow: auto; }
+.diff div { padding: 0 10px; white-space: pre; } .diff .a { background: #e6ffec; color: #116329; } .diff .d { background: #ffebe9; color: #a40e26; }
+.diff .g { color: var(--muted); }
+.toast { position: fixed; right: 20px; bottom: 70px; padding: 10px 16px; border-radius: 8px; background: #1d2733; color: #fff; display: none; z-index: 20; max-width: 520px; }
+.toast.bad { background: var(--bad); }
+.chart { width: 100%; height: 170px; }
+.muted { color: var(--muted); }
+.tabs-hidden { display: none; }
+.picker { border: 1px solid var(--line); border-radius: 6px; height: 340px; overflow: auto; margin-top: 8px; background: #fff; }
+.picker .pk { padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #f0f3f6; }
+.picker .pk:hover { background: #eef4ff; }
+.pathrow { display: flex; gap: 8px; } .pathrow input { flex: 1; } .pathrow button { white-space: nowrap; }
+@media (max-width: 760px) { .layout { grid-template-columns: 1fr; } nav { display: flex; flex-wrap: wrap; } nav a { border-left: 0; } .savebar { left: 0; } .form { grid-template-columns: 1fr; } .form .help { grid-column: 1; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>IIS 工业图像压缩存储 · 本机管理</h1>
+  <span id="state" class="pill muted">连接中…</span>
+  <span class="grow"></span>
+  <span class="muted" id="who"></span>
+  <button id="btnLogin">登录</button>
+  <span class="muted" id="ver"></span>
+</header>
+<div class="layout">
+<nav id="nav">
+  <a href="#overview" data-tab="overview">总览</a>
+  <div class="sep"></div>
+  <a href="#watch" data-tab="watch">监控目录</a>
+  <a href="#raw" data-tab="raw">RAW 参数</a>
+  <a href="#retention" data-tab="retention">识别与保留</a>
+  <a href="#disk" data-tab="disk">防爆盘</a>
+  <a href="#compress" data-tab="compress">压缩与资源</a>
+  <a href="#advanced" data-tab="advanced">高级（配置文件）</a>
+  <div class="sep"></div>
+  <a href="#export" data-tab="export">导出</a>
+  <a href="#logs" data-tab="logs">日志</a>
+  <a href="#audit" data-tab="audit">审计</a>
+  <a href="#account" data-tab="account">管理员密码</a>
+  <a href="#license" data-tab="license">授权</a>
+</nav>
+<main id="main"></main>
+</div>
+<div class="savebar" id="savebar">
+  <span>配置有未保存的修改</span>
+  <button class="primary" id="btnPreview">保存修改…</button>
+  <button id="btnDiscard">放弃修改</button>
+</div>
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+const S = { token: "", auth: "", hasPassword: false, status: null, cfg: null, defaults: null, base: "", rulesPath: "", draft: null, orig: "", rules: null, rulesOrig: "", tab: "overview", timer: 0 };
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const gb = b => (b >= 1e12 ? (b / 1e12).toFixed(2) + " TB" : b >= 1e9 ? (b / 1e9).toFixed(2) + " GB" : b >= 1e6 ? (b / 1e6).toFixed(1) + " MB" : (b / 1e3).toFixed(0) + " KB");
+const mb = b => (b / 1e6).toFixed(b < 1e7 ? 2 : 0) + " MB";
+const num = n => Number(n || 0).toLocaleString("zh-CN");
+const PIXEL = ["Mono8", "Mono10", "Mono12", "Mono14", "Mono16", "Mono10p", "Mono12p", "Mono12Packed"].concat(
+  ["RG", "GB", "GR", "BG"].flatMap(p => ["8", "10", "12", "14", "16", "10p", "12p", "12Packed"].map(b => "Bayer" + p + b)));
+
+function toast(msg, bad) { const t = $("#toast"); t.textContent = msg; t.className = "toast" + (bad ? " bad" : ""); t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", bad ? 7000 : 3500); }
+async function api(path, body, retried) {
+  const headers = { "X-IIS-Auth": S.auth };
+  const opt = body === undefined ? { headers } : { method: "POST", headers: Object.assign(headers, { "Content-Type": "application/json", "X-IIS-Token": S.token }), body: JSON.stringify(body) };
+  const r = await fetch(path, opt);
+  let j; try { j = await r.json(); } catch { j = { error: "服务没有返回有效数据" }; }
+  if (r.status === 403 && body !== undefined && !retried) {  // 服务重启过：换新会话码再试一次（未保存的修改不丢）
+    try { S.token = (await api("/api/session")).token; return api(path, body, true); } catch { /* 走下面的报错 */ }
+  }
+  if (r.status === 401 && body !== undefined && !retried && path !== "/api/login" && path !== "/api/password") {
+    // 需要登录（或先设密码）：弄好后原样重试
+    const ok = j.code === "no_password" ? await askNewPassword(true) : await askLogin();
+    if (ok) return api(path, body, true);
+    throw new Error("已取消：" + (j.error || "需要登录"));
+  }
+  if (!r.ok) throw new Error(j.error || ("请求失败（" + r.status + "）"));
+  return j;
+}
+
+// ---------- 登录与管理员密码 ----------
+function setAuth(a) { S.auth = a || ""; try { a ? sessionStorage.setItem("iis_auth", a) : sessionStorage.removeItem("iis_auth"); } catch { } updateWho(); }
+function updateWho() {
+  $("#who").textContent = S.auth ? "已登录" : (S.hasPassword ? "未登录（只能查看）" : "未设置管理员密码");
+  $("#btnLogin").textContent = S.auth ? "退出" : (S.hasPassword ? "登录" : "设置密码");
+}
+// 对话框：next() 等用户点“确定”（true）或“取消”（false，并关闭）；出错时 err() 显示原因，可再次提交
+function dialog(title, inner, okText) {
+  $("#modalBox").innerHTML = `<h2>${esc(title)}</h2>${inner}<div class="alert bad" id="dlgErr" style="display:none;margin-top:10px"></div>
+    <div class="row" style="margin-top:12px"><button class="primary" id="dlgOk">${esc(okText)}</button><button id="dlgCancel">取消</button></div>`;
+  $("#modal").classList.add("show");
+  const box = $("#modalBox"), first = box.querySelector("input");
+  if (first) first.focus();
+  let wake = null;
+  $("#dlgOk").onclick = () => wake && wake(true);
+  $("#dlgCancel").onclick = () => { $("#modal").classList.remove("show"); wake && wake(false); };
+  box.querySelectorAll("input").forEach(i => i.addEventListener("keydown", e => { if (e.key === "Enter") $("#dlgOk").click(); }));
+  return {
+    box,
+    next: () => new Promise(res => { wake = res; }),
+    err: m => { const e = $("#dlgErr"); e.textContent = m; e.style.display = "block"; },
+    close: () => $("#modal").classList.remove("show"),
+  };
+}
+async function askLogin() {
+  const d = dialog("管理员登录", `<p class="muted">修改配置、导出需要管理员密码。</p><div class="form"><label>密码</label><div><input type="password" id="pw1" autocomplete="current-password"></div></div>`, "登录");
+  while (await d.next()) {
+    try { const r = await api("/api/login", { password: $("#pw1", d.box).value }); setAuth(r.auth); d.close(); toast("已登录"); return true; }
+    catch (e) { d.err(e.message); }
+  }
+  return false;
+}
+async function askNewPassword(first) {
+  const d = dialog(first ? "设置管理员密码" : "修改管理员密码",
+    `<p class="muted">${first ? '首次使用请先设置管理员密码；之后修改配置、导出都要用它。忘记时可在本机用命令行 <span class="mono">iis-service set-password</span> 重设。' : "修改后其他已登录的页面需要重新登录。"}</p>
+    <div class="form">${first ? "" : `<label>原密码</label><div><input type="password" id="pwOld" autocomplete="current-password"></div>`}
+    <label>新密码</label><div><input type="password" id="pwNew" autocomplete="new-password" placeholder="至少 6 个字符"></div>
+    <label>再输一次</label><div><input type="password" id="pwNew2" autocomplete="new-password"></div></div>`, first ? "设置" : "修改");
+  while (await d.next()) {
+    const n1 = $("#pwNew", d.box).value, n2 = $("#pwNew2", d.box).value;
+    if (n1 !== n2) { d.err("两次输入的新密码不一致"); continue; }
+    try {
+      const r = await api("/api/password", { old: first ? "" : $("#pwOld", d.box).value, new: n1 });
+      setAuth(r.auth); S.hasPassword = true; updateWho(); d.close(); toast(first ? "管理员密码已设置" : "管理员密码已修改"); return true;
+    } catch (e) { d.err(e.message); }
+  }
+  return false;
+}
+$("#btnLogin").onclick = async () => {
+  if (S.auth) { try { await api("/api/logout", {}); } catch { } setAuth(""); toast("已退出"); return; }
+  if (S.hasPassword) await askLogin(); else await askNewPassword(true);
+};
+
+// ---------- 配置草稿 ----------
+function getp(o, path) { return path.split(".").reduce((a, k) => a == null ? undefined : a[k], o); }
+function setp(o, path, v) {
+  // 按 a.b.0.c 写入；v 为 undefined 时删除该键，并清掉因此变空的上级对象（数组元素保留）
+  const ks = path.split("."), stack = [o];
+  let a = o;
+  for (let i = 0; i < ks.length - 1; i++) {
+    if (a[ks[i]] == null || typeof a[ks[i]] !== "object") { if (v === undefined) return; a[ks[i]] = /^\d+$/.test(ks[i + 1]) ? [] : {}; }
+    a = a[ks[i]]; stack.push(a);
+  }
+  const last = ks[ks.length - 1];
+  if (v === undefined) delete a[last]; else a[last] = v;
+  for (let i = ks.length - 1; i > 0; i--) {
+    const obj = stack[i];
+    if (obj && typeof obj === "object" && !Array.isArray(obj) && !Object.keys(obj).length && !/^\d+$/.test(ks[i - 1])) delete stack[i - 1][ks[i - 1]];
+    else break;
+  }
+}
+const dirty = () => S.draft && (JSON.stringify(S.draft) !== S.orig || JSON.stringify(S.rules) !== S.rulesOrig);
+function touch() { $("#savebar").classList.toggle("show", !!dirty()); }
+
+// 默认值（服务提供，与服务端解析同源）：watch.N.x 取新增监控目录的默认值
+function defOf(path) {
+  if (!S.defaults) return undefined;
+  const m = /^watch\.\d+\.(.+)$/.exec(path);
+  return m ? getp(S.defaults.watch, m[1]) : getp(S.defaults.config, path);
+}
+// 打开配置时把没写的项补成默认值显示（不算修改）；保存时一并写入配置文件，现场一眼能看到每一项
+function fillDefaults(dst, def) {
+  for (const k of Object.keys(def)) {
+    if (dst[k] === undefined) dst[k] = JSON.parse(JSON.stringify(def[k]));
+    else if (def[k] && typeof def[k] === "object" && !Array.isArray(def[k]) && dst[k] && typeof dst[k] === "object" && !Array.isArray(dst[k])) fillDefaults(dst[k], def[k]);
+  }
+}
+const newWatch = path => Object.assign({ path }, JSON.parse(JSON.stringify((S.defaults && S.defaults.watch) || {})));
+
+// 表单控件：data-path 绑定到草稿；清空表示用默认
+function field(label, path, opt = {}) {
+  const v = getp(S.draft, path), dv = defOf(path);
+  const id = "f_" + path.replace(/\W/g, "_");
+  let input;
+  if (opt.type === "bool") {
+    const cur = v === undefined ? "" : String(v), d = dv === undefined ? opt.def : dv;
+    const mk = b => d === b ? "（默认）" : "";
+    input = `<select id="${id}" data-path="${path}" data-type="bool">${cur === "" ? `<option value="" selected>默认（${d ? "是" : "否"}）</option>` : ""}<option value="true"${cur === "true" ? " selected" : ""}>是${mk(true)}</option><option value="false"${cur === "false" ? " selected" : ""}>否${mk(false)}</option></select>`;
+  } else if (opt.type === "select") {
+    input = `<select id="${id}" data-path="${path}" data-type="text">${v === undefined ? `<option value="" selected>默认（${esc(opt.def)}）</option>` : ""}${opt.options.map(o => `<option value="${esc(o[0])}"${v === o[0] ? " selected" : ""}>${esc(o[1])}${o[0] === dv ? "（默认）" : ""}</option>`).join("")}</select>`;
+  } else if (opt.type === "list") {
+    input = `<textarea id="${id}" data-path="${path}" data-type="list" rows="3" placeholder="${esc(opt.ph || "每行一项")}">${esc((v || []).join("\n"))}</textarea>`;
+  } else {
+    const d = dv !== undefined && !Array.isArray(dv) ? dv : opt.def;
+    input = `<input id="${id}" type="${opt.type === "number" ? "number" : "text"}" step="any" data-path="${path}" data-type="${opt.type || "text"}" value="${esc(v ?? "")}" placeholder="${esc(d !== undefined && d !== "" ? "默认 " + d : (opt.ph || ""))}">`;
+    if (opt.pick) input = `<div class="pathrow">${input}<button type="button" data-pick="${esc(path)}">选择文件夹…</button></div>`;
+  }
+  return `<label for="${id}">${esc(label)}</label><div>${input}</div>${opt.help ? `<div class="help">${opt.help}</div>` : ""}`;
+}
+function bindFields(root) {
+  root.querySelectorAll("[data-path]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+    const t = el.dataset.type, raw = el.value;
+    let v;
+    if (t === "number") { v = raw.trim() === "" ? undefined : Number(raw); if (v !== undefined && !isFinite(v)) { el.classList.add("bad"); return; } }
+    else if (t === "bool") v = raw === "" ? undefined : raw === "true";
+    else if (t === "list") { const a = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean); v = a.length ? a : undefined; }
+    else v = raw.trim() === "" ? undefined : raw.trim();
+    el.classList.remove("bad");
+    setp(S.draft, el.dataset.path, v);
+    touch();
+  }));
+}
+
+// ---------- 页面 ----------
+const VIEWS = {};
+VIEWS.overview = () => {
+  const s = S.status || {};
+  const alerts = [];
+  if (!s.running) alerts.push(["bad", "压缩引擎未运行：" + (s.error || "原因见日志")]);
+  const L = s.license || {};
+  if (L.state && !L.ok) alerts.push(["bad", `授权${L.state}：${L.text}。不压缩新文件——已压缩文件的查看、还原、导出不受影响`]);
+  else if (L.ok && L.days_left >= 0 && L.days_left <= 30) alerts.push(["warn", `授权将在 ${L.days_left} 天后到期，请联系供应商续期`]);
+  if (L.dev_key) alerts.push(["warn", "本程序使用开发用授权公钥，仅供测试，不得用于正式发布"]);
+  (s.storage || []).forEach(r => {
+    if (r.online === false) alerts.push(["warn", "监控目录不可用：" + r.path]);
+    if (r.stuck) alerts.push(["bad", "空间低于目标但没有可删除的 OK 图（NG 与未知不删）：" + r.path + "，请人工清理或扩容"]);
+    else if (r.level === "delete") alerts.push(["bad", "剩余空间低于删除阈值，正在删除最旧的 OK 图：" + r.path]);
+    else if (r.level === "warn") alerts.push(["warn", "剩余空间低于告警阈值，已加速压缩：" + r.path]);
+  });
+  if (s.paused) alerts.push(["warn", `检测软件 CPU 占用高（${(s.inspect_cpu || 0).toFixed(0)}%），压缩已暂停`]);
+  if (s.low_space) alerts.push(["bad", "磁盘剩余低于最小保留空间，已停止写入压缩文件"]);
+  if (s.deleted_ng) alerts.push(["bad", `本次运行有 ${s.deleted_ng} 个 NG 文件按保留规则被删除`]);
+  if (s.running && !(s.storage || []).length) alerts.push(["warn", "尚未配置监控目录：请在“监控目录”页添加视觉软件保存图像的目录，然后应用配置"]);
+  if (!alerts.length && s.running) alerts.push(["ok", "运行正常"]);
+  const roots = (s.storage || []).map(r => {
+    const used = r.capacity ? (1 - r.free / r.capacity) : 0, cls = r.level === "delete" ? "bad" : r.level === "warn" ? "warn" : "";
+    return `<div class="card"><div class="row" style="justify-content:space-between"><b class="mono">${esc(r.path)}</b>
+      <span class="pill ${r.level === "ok" ? "ok" : r.level === "warn" ? "warn" : r.level === "delete" ? "bad" : "muted"}">${{ ok: "正常", warn: "告警", delete: "删除中" }[r.level] || "未知"}</span></div>
+      <div class="bar ${cls}"><i style="width:${(used * 100).toFixed(1)}%"></i></div>
+      <div class="grid">
+        <div class="stat"><div class="k">剩余 / 容量</div><div class="v">${gb(r.free || 0)} <small>/ ${gb(r.capacity || 0)}</small></div></div>
+        <div class="stat"><div class="k">受管文件物理占用</div><div class="v">${gb(r.used)}</div></div>
+        <div class="stat"><div class="k">等效容量（仅统计）</div><div class="v">${gb(r.equivalent)}</div></div>
+        <div class="stat"><div class="k">压缩比</div><div class="v">${(r.ratio || 0).toFixed(2)} <small>倍</small></div></div>
+        <div class="stat"><div class="k">文件数</div><div class="v">${num(r.files)}</div></div>
+      </div>
+      ${r.thresholds ? `<div class="muted" style="margin-top:6px">阈值：告警 ${gb(r.thresholds.warn)}，删除 ${gb(r.thresholds.delete)}，删到 ${gb(r.thresholds.target)}</div>` : ""}</div>`;
+  }).join("");
+  const v = s.verdicts || {};
+  const days = (s.daily || []).slice().reverse();
+  const maxb = Math.max(1, ...days.map(d => d.bytes_in));
+  const bw = days.length ? 100 / days.length : 100;
+  const chart = days.length ? `<svg class="chart" viewBox="0 0 100 60" preserveAspectRatio="none">${days.map((d, i) => {
+    const h1 = d.bytes_in / maxb * 52, h2 = d.bytes_out / maxb * 52;
+    return `<rect x="${i * bw + bw * .15}" y="${56 - h1}" width="${bw * .35}" height="${h1}" fill="#9ec2ff"><title>${d.day} 原始 ${gb(d.bytes_in)}</title></rect>
+            <rect x="${i * bw + bw * .5}" y="${56 - h2}" width="${bw * .35}" height="${h2}" fill="#1f6feb"><title>${d.day} 存储 ${gb(d.bytes_out)}</title></rect>`;
+  }).join("")}</svg><div class="row muted" style="font-size:12px"><span style="color:#9ec2ff">■</span> 原始 <span style="color:#1f6feb">■</span> 存储</div>` : `<p class="muted">还没有数据</p>`;
+  return `<h2>总览</h2><p class="sub">每 3 秒刷新。对外报告的容量一律为物理容量；等效容量只作统计。</p>
+    ${alerts.map(a => `<div class="alert ${a[0]}">${esc(a[1])}</div>`).join("")}
+    <div class="card"><div class="grid">
+      <div class="stat"><div class="k">本次运行已压缩</div><div class="v">${num(s.compressed)}</div></div>
+      <div class="stat"><div class="k">原始 → 存储</div><div class="v">${gb(s.bytes_in || 0)} <small>→ ${gb(s.bytes_out || 0)}</small></div></div>
+      <div class="stat"><div class="k">保留原文件（压不小）</div><div class="v">${num(s.stored)}</div></div>
+      <div class="stat"><div class="k">等待 / 就绪 / 处理中</div><div class="v">${num(s.waiting)} <small>/ ${num(s.ready)} / ${num(s.inflight)}</small></div></div>
+      <div class="stat"><div class="k">错误</div><div class="v" style="color:${s.errors ? "var(--bad)" : "inherit"}">${num(s.errors)}</div></div>
+      <div class="stat"><div class="k">存储管理删除（其中 NG）</div><div class="v">${num(s.deleted)} <small>（${num(s.deleted_ng)}）</small></div></div>
+      <div class="stat"><div class="k">OK / NG / 未知</div><div class="v">${num(v.OK)} <small>/ ${num(v.NG)} / ${num(v["?"])}</small></div></div>
+      <div class="stat"><div class="k">检测软件 CPU</div><div class="v">${s.inspect_cpu >= 0 ? s.inspect_cpu.toFixed(1) + "%" : "<small>未配置</small>"}</div></div>
+    </div></div>
+    ${roots}
+    <div class="card"><h3 style="margin-top:0">最近每日吞吐</h3>${chart}
+      <table><tr><th>日期</th><th class="num">压缩文件</th><th class="num">原始</th><th class="num">存储</th><th class="num">删除</th><th class="num">删除释放</th></tr>
+      ${(s.daily || []).map(d => `<tr><td>${d.day}</td><td class="num">${num(d.files)}</td><td class="num">${gb(d.bytes_in)}</td><td class="num">${gb(d.bytes_out)}</td><td class="num">${num(d.deleted)}</td><td class="num">${gb(d.deleted_bytes)}</td></tr>`).join("")}</table></div>
+    <p class="muted mono">审计最后一条：#${s.audit_seq ?? "-"} ${esc(s.audit_hash || "")}</p>`;
+};
+
+VIEWS.watch = () => {
+  const list = S.draft.watch || [];
+  return `<h2>监控目录</h2><p class="sub">视觉软件保存图像的目录。文件写完（最后修改后满延迟、大小稳定、没有程序在写）后在后台压缩为同目录的 .iis。</p>
+    ${list.map((w, i) => `<div class="item"><div class="head"><span>目录 ${i + 1}</span><button class="danger" data-del-watch="${i}">删除此目录</button></div>
+      <div class="form">
+        ${field("路径", `watch.${i}.path`, { ph: "如 D:\\Images", pick: true, help: "点“选择文件夹”浏览本机磁盘；网络共享可直接输入 \\\\服务器\\共享。不存在时服务每 5 秒重试" })}
+        ${field("含子目录", `watch.${i}.recursive`, { type: "bool", def: true })}
+        ${field("处理的文件", `watch.${i}.include`, { type: "list", ph: "*.bmp\n*.tif", help: "每行一个通配符，相对此目录、以 / 分隔，* 可跨目录，不区分大小写。默认 *.bmp *.dib *.tif *.tiff *.raw" })}
+        ${field("排除", `watch.${i}.exclude`, { type: "list", ph: "calib/*" })}
+        ${field("占用上限（MB）", `watch.${i}.quota_mb`, { type: "number", def: 0, help: "0 = 不限；设了时防爆盘把“配额剩余”与“盘剩余”取较小者" })}
+      </div></div>`).join("")}
+    ${list.length ? "" : `<div class="alert warn">还没有监控目录。点下面的按钮选择视觉软件保存图像的文件夹，其他各项已按默认值填好，有需要再改。</div>`}
+    <button class="primary" id="addWatch">添加监控目录…</button>`;
+};
+
+VIEWS.raw = () => {
+  const rules = (S.rules && S.rules.raw) || [];
+  return `<h2>RAW 参数</h2><p class="sub">无文件头的 RAW 需要宽、高、像素格式才能按图像压缩；按顺序取第一条匹配的规则。没有命中规则、也没有同名参数文件（a.raw 旁的 a.json）的 RAW 整文件 zstd 压缩。</p>
+    <div class="card"><div class="form">${field("RAW 规则文件", "raw_rules_file", { ph: "raw_rules.json", help: "相对路径按配置文件所在目录解析；保存时规则写入此文件" })}</div></div>
+    <div class="card"><table><tr><th>匹配（相对路径通配符）</th><th>宽</th><th>高</th><th>像素格式</th><th>行字节（可空）</th><th>文件头偏移（可空）</th><th></th></tr>
+    ${rules.map((r, i) => `<tr>
+      <td><input type="text" data-rule="${i}" data-k="match" value="${esc(r.match)}" placeholder="cam3/*.raw"></td>
+      <td><input type="number" data-rule="${i}" data-k="width" value="${esc(r.width)}"></td>
+      <td><input type="number" data-rule="${i}" data-k="height" value="${esc(r.height)}"></td>
+      <td><select data-rule="${i}" data-k="pixel_format">${PIXEL.map(p => `<option${p === r.pixel_format ? " selected" : ""}>${p}</option>`).join("")}</select></td>
+      <td><input type="number" data-rule="${i}" data-k="stride" value="${esc(r.stride ?? "")}"></td>
+      <td><input type="number" data-rule="${i}" data-k="offset" value="${esc(r.offset ?? "")}"></td>
+      <td><button class="danger" data-del-rule="${i}">删除</button></td></tr>`).join("")}</table>
+    <div class="row" style="margin-top:10px"><button id="addRule">添加规则</button></div></div>`;
+};
+
+function ruleRows(list, kind) {
+  return list.map((r, i) => `<tr>
+    <td><input type="text" data-${kind}="${i}" data-k="station" value="${esc(r.station ?? "*")}"></td>
+    <td><input type="text" data-${kind}="${i}" data-k="product" value="${esc(r.product ?? "*")}"></td>
+    <td><select data-${kind}="${i}" data-k="verdict">${[["*", "全部（不含 NG）"], ["OK", "OK"], ["NG", "NG"], ["?", "未知"]].map(o => `<option value="${o[0]}"${(r.verdict ?? "*") === o[0] ? " selected" : ""}>${o[1]}</option>`).join("")}</select></td>
+    <td><input type="number" step="any" data-${kind}="${i}" data-k="days" value="${esc(r.days ?? 0)}"></td>
+    <td><button class="danger" data-del-${kind}="${i}">删除</button></td></tr>`).join("");
+}
+VIEWS.retention = () => `<h2>识别与保留</h2><p class="sub">按路径识别工位、产品、批次与 OK/NG；保留规则按修改时间删除过期文件。<b>NG 只能由明确写 NG 的规则删除；防爆盘永远不删 NG。</b></p>
+  <div class="card"><h3 style="margin-top:0">识别规则</h3><div class="form">
+    ${field("路径模板", "classify.templates", { type: "list", ph: "{station}/{batch}/{verdict}/*", help: "{station} {product} {batch} {verdict} 各匹配一个路径段内的文字；* 段内任意，** 跨目录；取第一个匹配的模板。工位默认取第一级目录名" })}
+    ${field("NG 通配符", "classify.ng_globs", { type: "list", ph: "*/reject/*" })}
+    ${field("OK 通配符", "classify.ok_globs", { type: "list" })}
+    ${field("按路径中的词识别", "classify.word_rule", { type: "bool", def: true, help: "含 NG / NOK / FAIL / BAD / REJECT 为 NG，含 OK / PASS / GOOD 为 OK；同时出现按 NG" })}
+    ${field("NG 词", "classify.ng_words", { type: "list", ph: "NG\nNOK\nFAIL\nBAD\nREJECT" })}
+    ${field("OK 词", "classify.ok_words", { type: "list", ph: "OK\nPASS\nGOOD" })}
+    ${field("识别不出时", "classify.unknown_as", { type: "select", def: "当作 NG 保护", options: [["ng", "当作 NG 保护（不被防爆盘删除）"], ["ok", "当作 OK（可被删除）"]] })}
+  </div></div>
+  <div class="card"><h3 style="margin-top:0">保留规则</h3><p class="muted">按顺序取第一条匹配的规则；天数为 0 表示永久保留；没有规则 = 不按时间删除。工位、产品为通配符。</p>
+    <table><tr><th>工位</th><th>产品</th><th>OK/NG</th><th>保留天数</th><th></th></tr>${ruleRows(S.draft.retention || [], "ret")}</table>
+    <div class="row" style="margin-top:10px"><button id="addRet">添加规则</button></div>
+    <div class="form" style="margin-top:12px">${field("检查间隔（秒）", "retention_interval_s", { type: "number", def: 600 })}</div></div>`;
+
+VIEWS.disk = () => `<h2>防爆盘</h2><p class="sub">阈值取 MB 与百分比（占盘容量，或目录配额）中较大者。告警：加速压缩；删除：按时间从旧到新删除 OK 图，删到目标值。</p>
+  <div class="card"><div class="form">
+    ${field("告警：剩余低于（%）", "disk.warn_free_percent", { type: "number", def: 15 })}
+    ${field("告警：剩余低于（MB）", "disk.warn_free_mb", { type: "number", def: 0 })}
+    ${field("删除：剩余低于（%）", "disk.delete_free_percent", { type: "number", def: 8 })}
+    ${field("删除：剩余低于（MB）", "disk.delete_free_mb", { type: "number", def: 0 })}
+    ${field("删到剩余（%）", "disk.target_free_percent", { type: "number", def: 10 })}
+    ${field("删到剩余（MB）", "disk.target_free_mb", { type: "number", def: 0, help: "须满足：删除阈值 ≤ 告警阈值，目标 ≥ 删除阈值（MB 与百分比分别比较）" })}
+    ${field("加速时压缩线程", "disk.accelerate_threads", { type: "number", def: 0, help: "0 = 压缩线程 × 2" })}
+    ${field("加速时写完判定延迟（秒）", "disk.accelerate_delay_s", { type: "number", def: 300 })}
+    ${field("检查间隔（秒）", "disk.check_s", { type: "number", def: 10 })}
+    ${field("最小保留空间（MB）", "min_free_mb", { type: "number", def: 2048, help: "盘剩余低于此值时不再写 .iis，不与视觉软件抢最后的空间" })}
+  </div></div>`;
+
+VIEWS.compress = () => `<h2>压缩与资源</h2><p class="sub">何时压缩、用多少资源。优先级与核的修改保存后立即生效；CPU 硬上限与界面端口要重启服务。</p>
+  <div class="card"><h3 style="margin-top:0">写完判定与压缩</h3><div class="form">
+    ${field("最后修改后等待（秒）", "delay_s", { type: "number", def: 3600 })}
+    ${field("大小稳定确认（秒）", "stable_s", { type: "number", def: 5 })}
+    ${field("占用时重试间隔（秒）", "retry_s", { type: "number", def: 60 })}
+    ${field("定期全量扫描（秒）", "rescan_s", { type: "number", def: 3600, help: "0 = 只在启动、事件溢出、目录重建时扫描" })}
+    ${field("提交后释放原文件", "release", { type: "bool", def: true, help: "否：只生成 .iis，原文件保留（试用 / 对比）" })}
+    ${field("收益阈值（0~0.9）", "min_saving", { type: "number", def: 0, help: "压缩后须不大于原文件 ×（1 − 阈值），否则保留原文件" })}
+    ${field("兜底 zstd 级别（1~19）", "zstd_level", { type: "number", def: 19 })}
+  </div></div>
+  <div class="card"><h3 style="margin-top:0">资源控制</h3><div class="form">
+    ${field("压缩线程数", "threads", { type: "number", def: 2 })}
+    ${field("进程优先级", "priority", { type: "select", def: "后台", options: [["background", "后台（CPU 与磁盘都让出）"], ["idle", "低"], ["below_normal", "低于正常"], ["normal", "正常"]] })}
+    ${field("最多使用核数", "max_cores", { type: "number", def: 0, help: "0 = 不限；否则取编号最大的若干个逻辑核" })}
+    ${field("CPU 硬上限（整机 %）", "cpu_rate_percent", { type: "number", def: 0, help: "0 = 不限" })}
+    ${field("吞吐上限（MB/s）", "max_mb_s", { type: "number", def: 0, help: "0 = 不限" })}
+  </div></div>
+  <div class="card"><h3 style="margin-top:0">检测软件忙时暂停</h3><div class="form">
+    ${field("检测进程名", "pause.processes", { type: "list", ph: "Vision.exe" })}
+    ${field("合计 CPU 达到（整机 %）时暂停", "pause.pause_percent", { type: "number", def: 60 })}
+    ${field("低于（%）时恢复", "pause.resume_percent", { type: "number", def: 40 })}
+    ${field("持续（秒）后恢复", "pause.resume_after_s", { type: "number", def: 10 })}
+  </div></div>
+  <div class="card"><h3 style="margin-top:0">日志与界面</h3><div class="form">
+    ${field("日志目录", "log_dir", { def: "logs" })}
+    ${field("日志保留天数", "log_keep_days", { type: "number", def: 30 })}
+    ${field("索引与审计目录", "data_dir", { def: "data" })}
+    ${field("管理界面端口", "ui.port", { type: "number", def: 8686, help: "只监听 127.0.0.1；修改后重启服务生效" })}
+  </div></div>`;
+
+VIEWS.advanced = () => `<h2>高级：配置文件</h2><p class="sub mono">${esc(S.cfg.path)}</p>
+  <div class="card"><p class="muted">直接编辑整个配置文件（JSON）。未知字段会被拒绝。保存同样要预览差异并确认，原文件自动备份。</p>
+  <textarea id="rawText" style="min-height:460px">${esc(S.cfg.text)}</textarea>
+  <div class="row" style="margin-top:10px"><button class="primary" id="rawPreview">预览并保存此文本…</button></div></div>`;
+
+VIEWS.export = () => {
+  const roots = (S.draft && S.draft.watch || []).map(w => w.path);
+  return `<h2>导出</h2><p class="sub">按条件导出到其他目录（不能在监控目录里）。还原为原始格式时逐个比对 SHA-256；目标已存在不覆盖。每个文件都记审计。</p>
+  <div class="card"><div class="form">
+    <label>修改日期</label><div class="row"><input type="date" id="exFrom" style="width:auto"> 至 <input type="date" id="exTo" style="width:auto"></div>
+    <label>工位</label><div><input type="text" id="exStation" placeholder="通配符，空 = 全部"></div>
+    <label>产品</label><div><input type="text" id="exProduct" placeholder="通配符，空 = 全部"></div>
+    <label>批次</label><div><input type="text" id="exBatch" placeholder="通配符，空 = 全部"></div>
+    <label>OK/NG</label><div><select id="exVerdict"><option value="">全部</option><option>OK</option><option>NG</option><option value="?">未知</option></select></div>
+    <label>监控目录</label><div><select id="exRoot"><option value="">全部</option>${roots.map(r => `<option>${esc(r)}</option>`).join("")}</select></div>
+    <label>导出到</label><div><input type="text" id="exOut" placeholder="完整路径，如 E:\\导出\\20261102"></div>
+    <label>格式</label><div><select id="exRestore"><option value="1">还原为原始格式（BMP / TIFF / RAW）</option><option value="0">保持压缩（.iis，可用查看器打开）</option></select></div>
+  </div><div class="row" style="margin-top:12px"><button class="primary" id="exGo">开始导出</button></div></div>
+  <div class="card" id="exState"><span class="muted">没有进行中的导出</span></div>`;
+};
+
+VIEWS.logs = () => `<h2>日志</h2><p class="sub">服务日志按天分文件，最新在最上面。</p>
+  <div class="card"><div class="row"><select id="lgFile" style="width:auto"></select>
+    <select id="lgLevel" style="width:auto"><option value="">全部</option><option value="warn">警告与错误</option><option value="error">只看错误</option></select>
+    <input type="text" id="lgQ" placeholder="搜索" style="width:220px"><button id="lgGo">刷新</button></div></div>
+  <div class="logs mono" id="lgBox">加载中…</div>`;
+
+VIEWS.audit = () => `<h2>审计</h2><p class="sub">压缩、释放、删除、导出、配置变更、启动停止等记录；哈希链防篡改。</p>
+  <div class="card"><div class="row"><select id="auAct" style="width:auto"><option value="">全部动作</option>
+    ${["compress", "release", "delete", "export", "export_summary", "config", "missing", "recover", "start", "stop", "audit_repair"].map(a => `<option>${a}</option>`).join("")}</select>
+    <input type="text" id="auQ" placeholder="搜索路径或内容" style="width:260px"><button id="auGo">刷新</button>
+    <span class="grow"></span><button class="primary" id="auVerify">校验完整性</button></div>
+    <div id="auResult" style="margin-top:8px"></div></div>
+  <div class="card"><table id="auTable"><tr><td class="muted">加载中…</td></tr></table></div>`;
+
+VIEWS.account = () => `<h2>管理员密码</h2><p class="sub">查看状态、日志、审计不需要登录；修改配置、导出需要管理员密码。连续 5 次输错锁定 60 秒；30 分钟不操作自动退出登录。</p>
+  <div class="card"><div class="form">
+    <label>状态</label><div>${S.hasPassword ? '<span class="pill ok">已设置</span>' : '<span class="pill warn">未设置</span>'} ${S.auth ? '<span class="pill ok">已登录</span>' : ""}</div>
+    <label>忘记密码</label><div class="muted">在本机以管理员身份运行 <span class="mono">iis-service set-password --config 配置文件</span> 重设（会记审计）</div>
+  </div><div class="row" style="margin-top:12px"><button class="primary" id="pwChange">${S.hasPassword ? "修改密码…" : "设置密码…"}</button></div></div>`;
+
+VIEWS.license = () => `<h2>授权</h2><p class="sub">授权绑定本机硬件（主板、CPU、系统盘、网卡、系统，允许其中一项更换）。未授权或过期时<b>只是不压缩新文件</b>；
+  已压缩文件的查看、还原、导出永远可用（查看器、iis-cli、开源解码器都不检查授权）。</p>
+  <div class="card" id="licBox"><span class="muted">读取中…</span></div>
+  <div class="card"><h3 style="margin-top:0">本机机器码</h3><p class="muted">申请或续期授权时把它发给供应商（只含硬件信息的哈希，不含序列号原文）。</p>
+    <textarea id="licCode" readonly style="min-height:60px"></textarea>
+    <div class="row" style="margin-top:8px"><button id="licCopy">复制机器码</button></div></div>
+  <div class="card"><h3 style="margin-top:0">导入授权</h3><p class="muted">选择供应商发来的授权文件（.lic），或把内容粘贴到下面。需要管理员登录；只接受与本机相符且在有效期内的授权。</p>
+    <div class="row"><input type="file" id="licFile" accept=".lic,.json,.txt"></div>
+    <textarea id="licText" style="min-height:120px;margin-top:8px" placeholder="{ &quot;iis_license&quot;: … }"></textarea>
+    <div class="row" style="margin-top:8px"><button class="primary" id="licImport">导入</button></div></div>
+  <div class="card"><div class="form"><label>版本</label><div class="mono">${esc(S.status?.build || "")}</div></div></div>`;
+
+async function loadLicense() {
+  const box = $("#licBox"); if (!box) return;
+  try {
+    const r = await api("/api/license");
+    const l = r.license || {};
+    box.innerHTML = `<div class="form">
+      <label>状态</label><div><span class="pill ${r.ok ? "ok" : "bad"}">${esc(r.state)}</span> ${esc(r.text)}</div>
+      ${r.license ? `<label>客户 / 设备</label><div>${esc(l.customer)} / ${esc(l.device)}</div>
+      <label>档位</label><div>${esc(l.tier)}${(l.features || []).length ? "（" + l.features.map(esc).join("、") + "）" : ""}</div>
+      <label>有效期</label><div>${esc(l.not_before)} 至 ${esc(l.expires)}${l.days_left >= 0 ? "（剩余 " + l.days_left + " 天）" : ""}</div>
+      <label>本机指纹</label><div>${l.matched} / ${l.total} 项一致</div>
+      <label>授权编号</label><div class="mono">${esc(l.id)}（签发于 ${esc(l.issued)}）</div>` : ""}
+      <label>授权文件</label><div class="mono">${esc(r.file)}</div>
+      ${r.dev_key ? `<label></label><div class="alert warn">本程序使用开发用授权公钥，仅供测试</div>` : ""}</div>`;
+    $("#licCode").value = r.machine_code;
+  } catch (e) { box.textContent = e.message; }
+}
+
+const ACT = { compress: "压缩", release: "释放原文件", delete: "删除", export: "导出", export_summary: "导出汇总", config: "配置变更", missing: "外部删除", recover: "启动恢复", start: "启动", stop: "停止", audit_repair: "审计修复" };
+
+// ---------- 渲染与交互 ----------
+// 选择文件夹：服务端列目录（服务在后台运行，弹不出系统的选择框）。列出的是服务能访问的文件夹，也就是它能监控的
+async function pickFolder(start) {
+  if (!S.auth && !(S.hasPassword ? await askLogin() : await askNewPassword(true))) return null;
+  const d = dialog("选择文件夹", `<p class="muted">点文件夹进入，进入要监控的文件夹后点“选择此文件夹”。网络共享可在路径框直接输入 \\\\服务器\\共享 后点“转到”。</p>
+    <div class="pathrow"><input type="text" id="pkPath" class="mono" placeholder="此电脑"><button type="button" id="pkGo">转到</button><button type="button" id="pkUp">上一级</button></div>
+    <div id="pkList" class="picker"></div>`, "选择此文件夹");
+  // 路径框里回车 = 转到（对话框默认回车 = 确定）
+  const old = $("#pkPath", d.box), inp = old.cloneNode(true); old.replaceWith(inp);
+  let cur = "", parent = null;
+  const go = async p => {
+    try {
+      const r = await api("/api/browse", { path: p });
+      cur = r.path; parent = r.parent; inp.value = r.path;
+      $("#dlgErr").style.display = "none";
+      const list = $("#pkList", d.box);
+      list.innerHTML = r.dirs.length ? r.dirs.map((x, i) => `<div class="pk" data-i="${i}">📁 ${esc(x.name)}${x.note ? ` <span class="muted">${esc(x.note)}</span>` : ""}</div>`).join("")
+        + (r.truncated ? `<div class="muted" style="padding:6px 10px">只显示前 5000 个</div>` : "")
+        : `<div class="muted" style="padding:10px">（没有子文件夹）</div>`;
+      list.querySelectorAll(".pk").forEach(el => el.addEventListener("click", () => go(r.dirs[+el.dataset.i].path)));
+      $("#pkUp", d.box).disabled = parent === null;
+      $("#dlgOk").disabled = !cur;
+      return true;
+    } catch (e) { d.err(e.message); return false; }
+  };
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); go(inp.value.trim()); } });
+  $("#pkGo", d.box).onclick = () => go(inp.value.trim());
+  $("#pkUp", d.box).onclick = () => { if (parent !== null) go(parent); };
+  if (!(await go(start)) && start) await go("");  // 原路径打不开：从“此电脑”开始
+  while (await d.next()) {
+    if (cur) { d.close(); return cur; }
+    d.err("请先进入一个文件夹（不能选“此电脑”）");
+  }
+  return null;
+}
+
+function render() {
+  const m = $("#main");
+  document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.tab === S.tab));
+  const needCfg = ["watch", "raw", "retention", "disk", "compress", "advanced", "export"].includes(S.tab);
+  if (needCfg && !S.draft) {
+    m.innerHTML = `<h2>配置</h2><div class="alert bad">配置文件无法解析：${esc(S.cfg?.error || "")}。请在“高级（配置文件）”里直接修改。</div>` + (S.cfg ? VIEWS.advanced() : "");
+    wire(m); return;
+  }
+  m.innerHTML = VIEWS[S.tab] ? VIEWS[S.tab]() : "";
+  bindFields(m);
+  wire(m);
+  if (S.tab === "logs") loadLogs();
+  if (S.tab === "audit") loadAudit();
+  if (S.tab === "export") pollExport();
+  if (S.tab === "license") loadLicense();
+}
+
+function wire(m) {
+  const on = (sel, fn) => { const e = $(sel, m); if (e) e.addEventListener("click", fn); };
+  on("#addWatch", async () => {
+    const p = await pickFolder("");
+    if (!p) return;
+    (S.draft.watch = S.draft.watch || []).push(newWatch(p)); touch(); render();
+  });
+  m.querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", async () => {
+    const p = await pickFolder(getp(S.draft, b.dataset.pick) || "");
+    if (!p) return;
+    setp(S.draft, b.dataset.pick, p); touch(); render();
+  }));
+  m.querySelectorAll("[data-del-watch]").forEach(b => b.addEventListener("click", () => {
+    if (!confirm("从监控列表中删除这个目录？（不会删除目录里的任何文件）")) return;
+    S.draft.watch.splice(+b.dataset.delWatch, 1); touch(); render(); }));
+  // RAW 规则表
+  on("#addRule", () => { S.rules = S.rules || { raw: [] }; S.rules.raw.push({ match: "", width: 0, height: 0, pixel_format: "Mono8" }); touch(); render(); });
+  m.querySelectorAll("[data-del-rule]").forEach(b => b.addEventListener("click", () => { S.rules.raw.splice(+b.dataset.delRule, 1); touch(); render(); }));
+  m.querySelectorAll("[data-rule]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+    const r = S.rules.raw[+el.dataset.rule], k = el.dataset.k;
+    if (["width", "height", "stride", "offset"].includes(k)) { if (el.value.trim() === "" && k !== "width" && k !== "height") delete r[k]; else r[k] = Number(el.value); }
+    else r[k] = el.value;
+    touch(); }));
+  // 保留规则表
+  on("#addRet", () => { (S.draft.retention = S.draft.retention || []).push({ station: "*", product: "*", verdict: "OK", days: 30 }); touch(); render(); });
+  m.querySelectorAll("[data-del-ret]").forEach(b => b.addEventListener("click", () => { S.draft.retention.splice(+b.dataset.delRet, 1); if (!S.draft.retention.length) delete S.draft.retention; touch(); render(); }));
+  m.querySelectorAll("[data-ret]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+    const r = S.draft.retention[+el.dataset.ret], k = el.dataset.k;
+    r[k] = k === "days" ? Number(el.value) : el.value; touch(); }));
+  on("#rawPreview", () => preview($("#rawText").value, null));
+  on("#pwChange", async () => { if (S.hasPassword && !S.auth && !(await askLogin())) return; await askNewPassword(!S.hasPassword); render(); });
+  on("#exGo", startExport);
+  on("#licCopy", async () => { const t = $("#licCode"); t.select(); try { await navigator.clipboard.writeText(t.value); } catch { document.execCommand("copy"); } toast("机器码已复制"); });
+  const lf = $("#licFile", m);
+  if (lf) lf.addEventListener("change", async () => { if (lf.files[0]) $("#licText").value = await lf.files[0].text(); });
+  on("#licImport", async () => {
+    const text = $("#licText").value.trim();
+    if (!text) { toast("请先选择授权文件或粘贴内容", true); return; }
+    try { const r = await api("/api/license", { text }); toast("授权已导入：" + r.text); $("#licText").value = ""; await refresh(); loadLicense(); }
+    catch (e) { toast(e.message, true); }
+  });
+  on("#lgGo", loadLogs);
+  on("#auGo", loadAudit);
+  on("#auVerify", async () => {
+    const box = $("#auResult"); box.innerHTML = "校验中…";
+    try { const v = await api("/api/audit/verify", {});
+      box.innerHTML = v.ok ? `<div class="alert ok">审计日志完整：${v.files} 个文件，${num(v.entries)} 条记录。最后一条哈希 <span class="mono">${esc(v.last_hash)}</span></div>`
+                           : `<div class="alert bad">校验失败：${esc(v.error)}</div>`;
+    } catch (e) { box.innerHTML = `<div class="alert bad">${esc(e.message)}</div>`; }
+  });
+}
+
+async function preview(text, rules) {
+  try {
+    const body = { config: text };
+    if (rules !== null && rules !== undefined) body.raw_rules = rules;
+    const p = await api("/api/config/preview", body);
+    const diffHtml = d => d.length ? `<div class="diff">${d.map(x => `<div class="${x.op === "+" ? "a" : x.op === "-" ? "d" : x.op === "…" ? "g" : ""}">${esc(x.op === "…" ? "  ⋯" : x.op + " " + x.line)}</div>`).join("")}</div>` : `<p class="muted">无变化</p>`;
+    $("#modalBox").innerHTML = `<h2>确认修改配置</h2>
+      <p>改动项：<b>${p.changed.length ? p.changed.map(esc).join("、") : "无"}</b></p>
+      ${p.warnings.map(w => `<div class="alert warn">${esc(w)}</div>`).join("")}
+      <h3>配置文件</h3>${diffHtml(p.diff)}
+      ${body.raw_rules !== undefined ? `<h3>RAW 规则文件</h3>${diffHtml(p.rules_diff)}` : ""}
+      <p class="muted">确认后：原文件自动备份，新配置原子写入，压缩引擎重新加载（正在压缩的文件会先做完），变更记入审计日志。</p>
+      <div class="row"><button class="primary" id="mApply"${p.changed.length ? "" : " disabled"}>确认应用</button><button id="mCancel">取消</button></div>`;
+    $("#modal").classList.add("show");
+    $("#mCancel").onclick = () => $("#modal").classList.remove("show");
+    $("#mApply").onclick = async () => {
+      $("#mApply").disabled = true; $("#mApply").textContent = "应用中…";
+      try {
+        const r = await api("/api/config/apply", { token: p.token });
+        $("#modal").classList.remove("show");
+        if (r.running) toast("配置已保存并生效" + (r.backup ? "（原文件已备份）" : ""));
+        else toast("配置已保存，但引擎没有启动：" + (r.error || "见日志"), true);
+        await loadConfig(); await refresh(); render();
+      } catch (e) { $("#modal").classList.remove("show"); toast(e.message, true); }
+    };
+  } catch (e) { toast("配置有误：" + e.message, true); }
+}
+
+$("#btnPreview").onclick = () => {
+  const rulesChanged = JSON.stringify(S.rules) !== S.rulesOrig;
+  if (rulesChanged && !S.draft.raw_rules_file) S.draft.raw_rules_file = "raw_rules.json";
+  preview(JSON.stringify(S.draft, null, 2) + "\n", rulesChanged ? JSON.stringify(S.rules || { raw: [] }, null, 2) + "\n" : null);
+};
+$("#btnDiscard").onclick = () => { if (!confirm("放弃所有未保存的修改？")) return; S.draft = JSON.parse(S.orig); S.rules = S.rulesOrig ? JSON.parse(S.rulesOrig) : null; touch(); render(); };
+
+async function startExport() {
+  const body = { from: $("#exFrom").value, to: $("#exTo").value, station: $("#exStation").value.trim(), product: $("#exProduct").value.trim(),
+    batch: $("#exBatch").value.trim(), verdict: $("#exVerdict").value, root: $("#exRoot").value, out: $("#exOut").value.trim(), restore: $("#exRestore").value === "1" };
+  if (!body.out) { toast("请填写导出目录", true); return; }
+  if (!confirm(`导出到 ${body.out}？`)) return;
+  try { await api("/api/export", body); pollExport(); } catch (e) { toast(e.message, true); }
+}
+async function pollExport() {
+  const box = $("#exState"); if (!box) return;
+  try {
+    const s = await api("/api/export");
+    if (!s.out) { box.innerHTML = `<span class="muted">没有进行中的导出</span>`; return; }
+    box.innerHTML = `<b>${s.running ? "导出中…" : "导出完成"}</b> <span class="mono">${esc(s.out)}</span>
+      <div>已导出 ${num(s.files)} 个（${gb(s.bytes || 0)}），失败 ${num(s.failed)}</div>
+      ${(s.errors || []).length ? `<div class="logs mono" style="max-height:200px;margin-top:8px">${s.errors.map(esc).join("\n")}</div>` : ""}
+      ${s.error ? `<div class="alert bad">${esc(s.error)}</div>` : ""}`;
+    if (s.running) setTimeout(pollExport, 1000);
+  } catch (e) { box.textContent = e.message; }
+}
+async function loadLogs() {
+  const sel = $("#lgFile"); if (!sel) return;
+  const q = new URLSearchParams({ n: 500, level: $("#lgLevel").value, q: $("#lgQ").value, file: sel.value || "" });
+  try {
+    const r = await api("/api/logs?" + q);
+    sel.innerHTML = r.files.map(f => `<option${f === r.file ? " selected" : ""}>${f}</option>`).join("");
+    $("#lgBox").innerHTML = r.lines.length ? r.lines.map(l => `<div class="${l.includes("[错误]") ? "e" : l.includes("[警告]") ? "w" : ""}">${esc(l)}</div>`).join("") : "（没有符合条件的日志）";
+  } catch (e) { $("#lgBox").textContent = e.message; }
+}
+async function loadAudit() {
+  const t = $("#auTable"); if (!t) return;
+  try {
+    const r = await api("/api/audit?" + new URLSearchParams({ n: 300, act: $("#auAct").value, q: $("#auQ").value }));
+    t.innerHTML = `<tr><th>#</th><th>时间</th><th>动作</th><th>路径</th><th>详情</th></tr>` + (r.entries.length ? r.entries.map(e =>
+      `<tr><td class="num">${e.seq}</td><td class="mono" style="white-space:nowrap">${esc(String(e.t).replace("T", " ").slice(0, 19))}</td><td style="white-space:nowrap">${esc(ACT[e.act] || e.act)}</td>
+       <td class="mono" style="word-break:break-all">${esc(e.path)}</td><td class="mono" style="word-break:break-all;font-size:12px">${esc(JSON.stringify(e.d))}</td></tr>`).join("")
+      : `<tr><td colspan="5" class="muted">没有记录</td></tr>`);
+  } catch (e) { t.innerHTML = `<tr><td>${esc(e.message)}</td></tr>`; }
+}
+
+async function loadConfig() {
+  const c = await api("/api/config");
+  S.cfg = c;
+  try { S.draft = JSON.parse(c.text); if (typeof S.draft !== "object" || Array.isArray(S.draft)) S.draft = null; } catch { S.draft = null; }
+  S.defaults = c.defaults || null;
+  if (S.draft && S.defaults) {
+    fillDefaults(S.draft, S.defaults.config);
+    if (Array.isArray(S.draft.watch)) S.draft.watch.forEach(w => { if (w && typeof w === "object") fillDefaults(w, S.defaults.watch); });
+  }
+  S.orig = S.draft ? JSON.stringify(S.draft) : "";
+  try { S.rules = c.raw_rules_text ? JSON.parse(c.raw_rules_text) : { raw: [] }; } catch { S.rules = { raw: [] }; }
+  if (!Array.isArray(S.rules.raw)) S.rules.raw = [];
+  S.rulesOrig = JSON.stringify(S.rules);
+  touch();
+}
+async function refresh() {
+  try {
+    S.status = await api("/api/status");
+    const st = $("#state");
+    if (!S.status.running) { st.className = "pill bad"; st.textContent = "引擎未运行"; }
+    else if (S.status.license && !S.status.license.ok) { st.className = "pill bad"; st.textContent = "运行中 · 未授权（不压缩）"; }
+    else if (S.status.paused) { st.className = "pill warn"; st.textContent = "运行中 · 已暂停"; }
+    else if ((S.status.storage || []).some(r => r.level && r.level !== "ok")) { st.className = "pill warn"; st.textContent = "运行中 · 空间告警"; }
+    else { st.className = "pill ok"; st.textContent = "运行中"; }
+    $("#ver").textContent = "版本 " + S.status.version;
+    if (S.tab === "overview" && !$("#modal").classList.contains("show")) render();
+  } catch (e) { const st = $("#state"); st.className = "pill bad"; st.textContent = "无法连接服务"; }
+}
+window.addEventListener("hashchange", () => { S.tab = location.hash.slice(1) || "overview"; render(); });
+window.addEventListener("beforeunload", e => { if (dirty()) { e.preventDefault(); e.returnValue = ""; } });
+(async () => {
+  try { S.auth = sessionStorage.getItem("iis_auth") || ""; } catch { }
+  try { const ss = await api("/api/session"); S.token = ss.token; S.hasPassword = ss.has_password; if (!ss.logged_in) S.auth = ""; updateWho(); }
+  catch (e) { $("#main").innerHTML = `<div class="alert bad">${esc(e.message)}</div>`; return; }
+  S.tab = location.hash.slice(1) || "overview";
+  await loadConfig().catch(e => toast(e.message, true));
+  await refresh();
+  render();
+  setInterval(refresh, 3000);
+})();
+</script>
+</body>
+</html>

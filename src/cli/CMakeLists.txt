@@ -1,0 +1,10 @@
+# iis-cli：命令行工具（T8），Windows / Linux 都构建
+add_executable(iis-cli iis_cli.cpp)
+target_link_libraries(iis-cli PRIVATE iis_static iis_json)
+target_include_directories(iis-cli PRIVATE "${CMAKE_SOURCE_DIR}/src/core/src")
+target_compile_definitions(iis-cli PRIVATE _CRT_SECURE_NO_WARNINGS)
+if(MSVC)
+  target_compile_options(iis-cli PRIVATE /W4)
+else()
+  target_compile_options(iis-cli PRIVATE -Wall -Wextra)
+endif()

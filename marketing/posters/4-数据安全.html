@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>三溪缩影 数据安全</title>
+<link rel="stylesheet" href="poster.css">
+<style>
+  html, body { background: var(--night); }
+  body { width: 1080px; height: 1440px; position: relative; color: #E4F0EC; }
+  .head { position: absolute; left: 80px; right: 80px; top: 80px; }
+  .head .row { display: flex; align-items: center; gap: 16px; color: #A8BDB8; font-size: 28px; }
+  .head .row img { width: 52px; height: 52px; }
+  .head h1 { margin-top: 44px; font-size: 70px; line-height: 1.25; color: #F4F1E8; letter-spacing: .01em; }
+  .head h1 b { color: var(--persimmon); font-weight: 400; }
+  .head p { margin-top: 18px; font-size: 24px; color: #A8BDB8; line-height: 1.6; }
+  .flow { position: absolute; left: 80px; right: 80px; top: 500px; }
+  .step { display: flex; gap: 26px; align-items: flex-start; position: relative; padding-bottom: 54px; }
+  .step:not(:last-child)::after { content: ""; position: absolute; left: 29px; top: 64px; bottom: 6px; width: 2px; background: #31504B; }
+  .dot { width: 60px; height: 60px; border-radius: 50%; flex: none; display: grid; place-items: center;
+         font-family: var(--f-en); font-weight: 700; font-size: 22px; background: #173A36; color: var(--brook-light); border: 1px solid #2E5450; }
+  .step.ok .dot { background: var(--brook-light); color: #08201E; border: 0; }
+  .txt h3 { font-size: 34px; font-weight: 700; color: #F4F1E8; }
+  .txt p { margin-top: 8px; font-size: 23px; color: #A8BDB8; line-height: 1.55; }
+  .fallback { margin-top: 10px; display: inline-block; padding: 6px 14px; border-radius: 999px; background: #3A3018; color: #F7DFA6; font-size: 19px; }
+  .promise { position: absolute; left: 80px; right: 80px; bottom: 110px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+  .promise div { background: var(--night-2); border: 1px solid var(--night-line); border-radius: 16px; padding: 20px 22px; }
+  .promise b { display: block; font-size: 24px; color: #F4F1E8; }
+  .promise span { display: block; margin-top: 8px; font-size: 18px; color: #A8BDB8; line-height: 1.5; }
+  .foot { position: absolute; left: 80px; right: 80px; bottom: 44px; display: flex; justify-content: space-between; align-items: center; font-size: 20px; color: #8FA59F; }
+  .foot img { height: 36px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="row"><img src="../assets/icon-512.png" alt=""><span class="display">三溪缩影</span></div>
+    <h1 class="display">数据安全<br>优先于<b>压缩率</b>。</h1>
+    <p>每个文件写入前都当场解一遍、比一遍。<br>任何一步不一致，就按原样存放，绝不丢弃或改动你的数据。</p>
+  </div>
+  <div class="flow">
+    <div class="step"><div class="dot">1</div><div class="txt"><h3>按内容识别格式</h3><p>读文件头与关键字段判断 BMP / TIFF / RAW / Bayer、位深与版面，不看扩展名。</p></div></div>
+    <div class="step"><div class="dot">2</div><div class="txt"><h3>标准码流无损压缩</h3><p>像素用 JPEG-LS 等公开标准编码；文件头、调色板、填充字节原样保留。</p></div></div>
+    <div class="step"><div class="dot">3</div><div class="txt"><h3>当场解码、按原版面重组</h3><p>压完立即解回去，拼成与原文件相同的字节序列。</p></div></div>
+    <div class="step ok"><div class="dot">✓</div><div class="txt"><h3>SHA-256 与原文件比对，一致才保存</h3><p>不一致、压了反而更大、格式认不出：</p><span class="fallback">自动改为通用压缩或原样存放</span></div></div>
+  </div>
+  <div class="promise">
+    <div><b>逐字节一致</b><span>不是“看起来一样”，是文件的每个字节都相同</span></div>
+    <div><b>开放可查</b><span>.iisz 是标准 ZIP；附开源解码器 iis-decode</span></div>
+    <div><b>不虚报容量</b><span>压缩比只作统计，以你的实测为准</span></div>
+  </div>
+  <div class="foot"><span>Windows 10 / 11</span><img src="../assets/threebrook-lockup-dark.svg" alt="三溪"></div>
+</body>
+</html>

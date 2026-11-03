@@ -1,0 +1,84 @@
+/* 三溪 Threebrook 界面设计变量（三溪寻影 0.6.5 / 官网同一套，2026-10-23）。说明见 三溪外观规范.md
+   用法：引入本文件，页面里只用 var(--xxx)；深色跟随系统，也可在 <html> 上写 data-theme="light" / "dark" 固定。
+   字体文件（站酷小薇、Bricolage Grotesque、JetBrains Mono，SIL OFL）需自行打包并用 @font-face 引入。 */
+:root {
+  --bg: #F6FAF6;
+  --sidebar: #EAF3EC;
+  --card: #FFFFFF;
+  --border: #D6E4DB;
+  --border-strong: #C5D7CC;
+  --text: #1D3331;
+  --text-sub: #4E6461;
+  --text-muted: #627874;
+  --accent: #1C8780;
+  --on-accent: #FFFFFF;
+  --accent-soft: #E0F2EE;
+  --nav-active: #D4EEE9;
+  --track: #E3EEE7;
+  --offline: #B3C2BC;
+  --input-border: #BFDCD6;
+  --chip-border: #B5D9D2;
+  --success: #2F7D4F;
+  --success-bg: #E6F4EC;
+  --success-text: #1F5C3A;
+  --danger: #B0334C;
+  --danger-bg: #FDEFF2;
+  --danger-border: #F2B8C4;
+  --highlight: #FFF0C9;
+  --highlight-border: #F2B33D;
+  --sun-ink: #6B4A06;
+
+  --shadow: 0 1px 2px rgba(29, 51, 49, .06), 0 8px 24px rgba(29, 51, 49, .08);
+
+  --f-body: "Microsoft YaHei UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-display: "ZCOOL XiaoWei", "Noto Serif SC", "Songti SC", serif;
+  --f-display-en: "Bricolage Grotesque", "Noto Sans SC", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
+
+  --r-card: 14px;
+  --r-primary: 10px;
+  --r-button: 6px;
+  --r-input: 10px;
+  --r-chip: 6px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1A19; --sidebar: #14231F; --card: #172826; --border: #27403C; --border-strong: #31504B;
+    --text: #E4F0EC; --text-sub: #A8BDB8; --text-muted: #8FA59F;
+    --accent: #4CC0B6; --on-accent: #08201E; --accent-soft: #173A36; --nav-active: #1E3834;
+    --track: #1F3330; --offline: #4E625E; --input-border: #2E5450; --chip-border: #2B524D;
+    --success: #5DBB86; --success-bg: #16302A; --success-text: #8FD3AC;
+    --danger: #F27F95; --danger-bg: #3A1D25; --danger-border: #6E3443;
+    --highlight: #3A3018; --highlight-border: #F4C25B; --sun-ink: #F7DFA6;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0F1A19; --sidebar: #14231F; --card: #172826; --border: #27403C; --border-strong: #31504B;
+  --text: #E4F0EC; --text-sub: #A8BDB8; --text-muted: #8FA59F;
+  --accent: #4CC0B6; --on-accent: #08201E; --accent-soft: #173A36; --nav-active: #1E3834;
+  --track: #1F3330; --offline: #4E625E; --input-border: #2E5450; --chip-border: #2B524D;
+  --success: #5DBB86; --success-bg: #16302A; --success-text: #8FD3AC;
+  --danger: #F27F95; --danger-bg: #3A1D25; --danger-border: #6E3443;
+  --highlight: #3A3018; --highlight-border: #F4C25B; --sun-ink: #F7DFA6;
+  --shadow: none;
+  color-scheme: dark;
+}
+
+/* 基础组件（与三溪寻影一致） */
+body { background: var(--bg); color: var(--text); font: 13px/1.5 var(--f-body); }
+.tb-title { font-family: var(--f-display); font-weight: 400; letter-spacing: .5px; line-height: 1.25; }
+:lang(en) .tb-title { font-family: var(--f-display-en); font-weight: 700; letter-spacing: -.2px; }
+.tb-mono { font-family: var(--f-mono); }
+.tb-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); padding: 20px; box-shadow: var(--shadow); }
+.tb-btn-primary { height: 40px; padding: 0 16px; border: 0; border-radius: var(--r-primary); background: var(--accent); color: var(--on-accent); font: 13px var(--f-body); }
+.tb-btn { height: 36px; padding: 0 14px; border: 1px solid var(--border-strong); border-radius: var(--r-button); background: var(--card); color: var(--text); font: 13px var(--f-body); }
+.tb-btn-danger { height: 36px; padding: 0 14px; border: 1px solid var(--danger-border); border-radius: var(--r-button); background: var(--danger-bg); color: var(--danger); font: 13px var(--f-body); }
+.tb-input { height: 44px; padding: 0 14px; border: 1px solid var(--input-border); border-radius: var(--r-input); background: var(--card); color: var(--text); }
+.tb-hint { background: var(--accent-soft); border-radius: 10px; padding: 12px 14px; color: var(--text); }
+.tb-hit { background: var(--highlight); border: 1px solid var(--highlight-border); border-radius: 4px; }

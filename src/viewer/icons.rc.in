@@ -1,0 +1,45 @@
+#pragma code_page(65001)
+// 由 src/viewer/CMakeLists.txt 生成：查看器的图标与界面资源。
+// 图标：1 = 程序（资源管理器里 exe 的图标），2 = .iis 文件，3 = .iisz 包；安装包的文件关联用 iis-viewer.exe,-2 与 -3 引用后两个
+1 ICON "@IIS_ICON_DIR@/iis-app.ico"
+2 ICON "@IIS_ICON_DIR@/iis-file.ico"
+3 ICON "@IIS_ICON_DIR@/iis-package.ico"
+// 界面资源（theme.cpp 读取）：标题栏图标、三溪规范的字体（SIL OFL 1.1）
+101 RCDATA "@IIS_ICON_DIR@/app-64.png"
+102 RCDATA "@IIS_FONT_DIR@/ZCOOLXiaoWei-Regular.ttf"
+103 RCDATA "@IIS_FONT_DIR@/BricolageGrotesque.ttf"
+104 RCDATA "@IIS_FONT_DIR@/JetBrainsMono.ttf"
+
+// 资源管理器与开始菜单里显示的文字（安装包用 "@iis-viewer.exe,-编号" 引用）：Windows 按显示语言选中文或英文，
+// 其他语言用英文。编号与 installer/iis.wxs 对应
+#include <winres.h>
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+STRINGTABLE
+BEGIN
+  201 "三溪缩影 压缩（打成 .iisz 包）"
+  202 "三溪缩影 解压其中的 .iis / .iisz"
+  203 "三溪缩影 压缩"
+  204 "三溪缩影 解压到此处"
+  205 "用三溪缩影打开"
+  206 "三溪缩影 压缩图像"
+  207 "三溪缩影 压缩包"
+  210 "三溪缩影"
+  211 "三溪缩影 压缩文件夹"
+  212 "三溪缩影 解压"
+  213 "使用说明"
+END
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+STRINGTABLE
+BEGIN
+  201 "Threebrook Pack: Compress (to a .iisz package)"
+  202 "Threebrook Pack: Extract the .iis / .iisz inside"
+  203 "Threebrook Pack: Compress"
+  204 "Threebrook Pack: Extract here"
+  205 "Open with Threebrook Pack"
+  206 "Threebrook Pack compressed image"
+  207 "Threebrook Pack package"
+  210 "Threebrook Pack"
+  211 "Threebrook Pack - Compress folder"
+  212 "Threebrook Pack - Extract"
+  213 "User guide"
+END

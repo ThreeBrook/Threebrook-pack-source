@@ -1,0 +1,5 @@
+/* libiis.so 只导出 C 接口；其余（含 libstdc++ 模板实例、CharLS、zstd）一律本地化 */
+{
+  global: iis_*;
+  local: *;
+};

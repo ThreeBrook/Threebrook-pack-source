@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>三溪缩影 横幅</title>
+<link rel="stylesheet" href="poster.css">
+<style>
+  html, body { background: var(--night); }
+  body { width: 1920px; height: 1080px; position: relative; color: #E4F0EC; }
+  .glow { position: absolute; right: -200px; top: -260px; width: 1100px; height: 1100px; border-radius: 50%;
+          background: radial-gradient(closest-side, rgba(217,117,43,.22), rgba(217,117,43,0)); }
+  .left { position: absolute; left: 120px; top: 150px; width: 700px; }
+  .brand { color: #A8BDB8; }
+  .brand img { height: 44px; }
+  .name { margin-top: 96px; display: flex; align-items: center; gap: 26px; }
+  .name img { width: 120px; height: 120px; }
+  .name h1 { font-size: 92px; color: #F4F1E8; }
+  .name .en { font-size: 32px; color: #A8BDB8; margin-top: 2px; }
+  .slogan { margin-top: 60px; font-size: 56px; line-height: 1.35; color: #F4F1E8; letter-spacing: .01em; }
+  .slogan b { color: var(--persimmon); font-weight: 400; }
+  .list { margin-top: 40px; display: grid; gap: 18px; font-size: 26px; color: #C9DAD5; }
+  .list div { display: flex; align-items: center; gap: 16px; }
+  .list i { width: 10px; height: 10px; border-radius: 50%; background: var(--brook-light); flex: none; }
+  .shots { position: absolute; left: 900px; top: 150px; width: 1120px; height: 780px; }
+  .shots .a { position: absolute; left: 0; top: 0; width: 960px; }
+  .shots .b { position: absolute; left: 520px; top: 430px; width: 420px; }
+  .foot { position: absolute; left: 120px; bottom: 64px; font-size: 22px; color: #8FA59F; }
+</style>
+</head>
+<body class="dark">
+  <div class="glow"></div>
+  <div class="left">
+    <div class="brand"><img src="../assets/threebrook-lockup-dark.svg" alt="三溪"></div>
+    <div class="name">
+      <img src="../assets/icon-512.png" alt="">
+      <div><h1 class="display">三溪缩影</h1><div class="en">Threebrook Pack</div></div>
+    </div>
+    <div class="slogan display">工业图像无损压缩，<br>像 <span class="lat">ZIP</span> 一样<b>右键</b>就用。</div>
+    <div class="list">
+      <div><i></i>BMP、TIFF、RAW、Bayer 按图像压缩，比通用压缩更懂像素</div>
+      <div><i></i>解出的文件与原文件逐字节相同，每个文件 SHA-256 核对</div>
+      <div><i></i>文件夹打成一个 .iisz 包，标准 ZIP 结构，开放可查</div>
+    </div>
+  </div>
+  <div class="shots">
+    <img class="shot a" src="../assets/shots/看图-深色.png" alt="">
+    <img class="shot b" src="../assets/shots/解压完成.png" alt="">
+  </div>
+  <div class="foot">Windows 10 / 11 · 普通用户双击即装，无需管理员</div>
+</body>
+</html>

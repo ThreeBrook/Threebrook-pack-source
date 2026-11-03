@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>三溪缩影 主海报</title>
+<link rel="stylesheet" href="poster.css">
+<style>
+  body { width: 1080px; height: 1440px; position: relative; }
+  .top { position: absolute; left: 80px; right: 80px; top: 64px; display: flex; justify-content: space-between; align-items: center; }
+  .tag { font-size: 20px; color: var(--ink-3); letter-spacing: .12em; }
+  .hero { position: absolute; left: 80px; top: 170px; right: 80px; }
+  .name { display: flex; align-items: center; gap: 28px; }
+  .name img { width: 132px; height: 132px; }
+  .name h1 { font-size: 96px; }
+  .name .en { font-size: 34px; color: var(--ink-2); margin-top: 4px; }
+  .slogan { margin-top: 56px; font-size: 62px; line-height: 1.3; letter-spacing: .01em; }
+  .slogan b { color: var(--persimmon); font-weight: 400; }
+  .sub { margin-top: 22px; font-size: 26px; color: var(--ink-2); line-height: 1.6; }
+  .shotwrap { position: absolute; left: 80px; right: 80px; top: 690px; }
+  .shotwrap .shot { width: 100%; }
+  .chips { position: absolute; left: 80px; right: 80px; top: 1238px; display: flex; gap: 12px; flex-wrap: nowrap; }
+  .chips .chip { font-size: 19px; padding: 9px 16px; white-space: nowrap; }
+  .foot { position: absolute; left: 80px; right: 80px; bottom: 44px; display: flex; justify-content: space-between; font-size: 20px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+  <svg class="waves" viewBox="0 0 1080 220" preserveAspectRatio="none">
+    <path d="M0 120 Q90 95 180 120 T360 120 T540 120 T720 120 T900 120 T1080 120 V220 H0 Z" fill="#E0F2EE"/>
+    <path d="M0 160 Q90 138 180 160 T360 160 T540 160 T720 160 T900 160 T1080 160 V220 H0 Z" fill="#D4EEE9"/>
+  </svg>
+  <div class="top">
+    <div class="brand"><img src="../assets/threebrook-lockup-light.svg" alt="三溪"></div>
+    <div class="tag">工业图像无损压缩</div>
+  </div>
+  <div class="hero">
+    <div class="name">
+      <img src="../assets/icon-512.png" alt="">
+      <div><h1 class="display">三溪缩影</h1><div class="en">Threebrook Pack</div></div>
+    </div>
+    <div class="slogan display">产线图像，<b>缩小</b>存放，<br>解压出来一字节不差。</div>
+    <div class="sub">BMP、TIFF、RAW 按图像无损压缩；解出的文件与原文件逐字节相同。<br>像 ZIP 一样用：资源管理器里右键压缩、右键解压。</div>
+  </div>
+  <div class="shotwrap"><img class="shot" src="../assets/shots/看图-浅色.png" alt=""></div>
+  <div class="chips">
+    <span class="chip"><i></i>右键压缩，文件夹打成一个包</span>
+    <span class="chip"><i></i>每个文件 SHA-256 核对</span>
+    <span class="chip"><i></i>资源管理器里直接看缩略图</span>
+  </div>
+  <div class="foot"><span>Windows 10 / 11 · 普通用户双击即装</span><span>三溪 · Threebrook</span></div>
+</body>
+</html>
