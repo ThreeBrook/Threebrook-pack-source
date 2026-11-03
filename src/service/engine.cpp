@@ -1059,6 +1059,21 @@ struct Engine::Impl {
         static_cast<Impl*>(user)->log.info(std::string("恢复：") + path + "：" + action);
     }
 
+    // 后台线程里没接住的异常：先记进日志再终止进程（不在半途状态下继续跑；重启后由启动恢复收拾）。
+    // 不记的话 Release 下只剩退出码 0xc0000409，查不出是哪里。
+    template <class F>
+    void guarded(const char* name, F&& body) {
+        try {
+            body();
+        } catch (const std::exception& e) {
+            log.error(std::string("内部错误（") + name + "线程）：" + e.what() + "；服务终止");
+            std::terminate();
+        } catch (...) {
+            log.error(std::string("内部错误（") + name + "线程）：未知异常；服务终止");
+            std::terminate();
+        }
+    }
+
     bool start() {
         log.info(std::string("启动 ") + iis_build_info());
         for (const auto& w : cfg.watch) {
@@ -1142,11 +1157,11 @@ struct Engine::Impl {
             log.error(std::string("无法创建线程池：") + iis_last_error());
             return false;
         }
-        threads.emplace_back([this] { scheduler(); });
-        threads.emplace_back([this] { scanner(); });
-        threads.emplace_back([this] { housekeeping(); });
+        threads.emplace_back([this] { guarded("调度", [this] { scheduler(); }); });
+        threads.emplace_back([this] { guarded("扫描", [this] { scanner(); }); });
+        threads.emplace_back([this] { guarded("定时", [this] { housekeeping(); }); });
         for (size_t i = 0; i < cfg.watch.size(); ++i) {
-            threads.emplace_back([this, i] { watcher(i); });
+            threads.emplace_back([this, i] { guarded("监控", [this, i] { watcher(i); }); });
             request_scan(i, cfg.watch[i].path);
         }
         log.info("已启动");

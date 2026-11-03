@@ -49,8 +49,10 @@ std::string fresh_dir(const std::string& name) {
     return U(d);
 }
 
+// 引擎同时在改名、删除这些路径：删除挂起时 Windows 报“拒绝访问”，不带 error_code 的版本会抛异常
 void write_file(const std::string& path, const Bytes& b) {
-    stdfs::create_directories(P(path).parent_path());
+    std::error_code ec;
+    stdfs::create_directories(P(path).parent_path(), ec);
     std::ofstream f(P(path), std::ios::binary | std::ios::trunc);
     f.write(reinterpret_cast<const char*>(b.data()), std::streamsize(b.size()));
 }
@@ -60,7 +62,10 @@ Bytes read_file(const std::string& path) {
     return Bytes((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
 }
 
-bool exists(const std::string& p) { return stdfs::exists(P(p)); }
+bool exists(const std::string& p) {
+    std::error_code ec;
+    return stdfs::exists(P(p), ec);
+}
 
 bool restore_equals(const std::string& iis_path, const Bytes& expect) {
     iis_reader* r = nullptr;
@@ -290,7 +295,7 @@ TEST(engine_root_recreated) {
     CHECK(wait_for([&] { return stdfs::remove_all(P(root), ec) != uintmax_t(-1) && !exists(root); }, 10));
     std::this_thread::sleep_for(std::chrono::milliseconds(1500));
     CHECK(wait_for([&] { return r.snap().roots_online == 0; }, 10));
-    stdfs::create_directories(P(root));
+    CHECK(wait_for([&] { return stdfs::create_directories(P(root), ec) || exists(root); }, 10));
     write_file(root + "\\two.bmp", d2);
     CHECK(wait_for([&] { return compressed_ok(root + "\\two.bmp", d2); }, 30));
     CHECK_EQ(r.snap().roots_online, 1);
@@ -428,6 +433,18 @@ TEST(engine_future_mtime) {
 int main(int argc, char** argv) {
     SetConsoleOutputCP(CP_UTF8);
     std::setvbuf(stdout, nullptr, _IONBF, 0);
+    // 没接住的异常在 Release 下只表现为 0xc0000409，先把异常内容打出来
+    std::set_terminate([] {
+        try {
+            if (const auto e = std::current_exception()) std::rethrow_exception(e);
+            std::printf("std::terminate（没有异常）\n");
+        } catch (const std::exception& e) {
+            std::printf("没接住的异常：%s\n", e.what());
+        } catch (...) {
+            std::printf("没接住的异常（非 std::exception）\n");
+        }
+        std::abort();
+    });
     if (argc >= 4 && std::string(argv[1]) == "--burn") {  // 模拟检测软件：n 个线程空转 s 秒
         const int n = std::atoi(argv[2]);
         const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(std::atoi(argv[3]));
